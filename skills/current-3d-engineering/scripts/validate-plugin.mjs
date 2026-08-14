@@ -7,10 +7,10 @@ const requiredFiles = [
   '.agents/plugins/marketplace.json',
   'skills/current-3d-engineering/SKILL.md',
   'skills/current-3d-engineering/references/source-policy.md',
-  'skills/current-3d-engineering/references/library-routing.md',
-  'skills/current-3d-engineering/references/scenarios.md',
+  'skills/current-3d-engineering/references/project-routing.md',
+  'skills/current-3d-engineering/references/engineering-invariants.md',
   'skills/current-3d-engineering/scripts/resolve-packages.mjs',
-  'tests/scenarios.json',
+  'tests/plugin.test.mjs',
 ];
 
 for (const file of requiredFiles) await access(file);
@@ -23,13 +23,12 @@ if ('mcpServers' in manifest) throw new Error('skill-only plugin must not advert
 
 const skill = await readFile('skills/current-3d-engineering/SKILL.md', 'utf8');
 if (!skill.startsWith('---\nname: current-3d-engineering\ndescription: Use when ')) throw new Error('skill frontmatter is not discoverable');
-
-const scenarios = JSON.parse(await readFile('tests/scenarios.json', 'utf8'));
-if (!Array.isArray(scenarios) || scenarios.length < 10) throw new Error('at least 10 end-to-end scenarios are required');
+if (!skill.includes('references/project-routing.md')) throw new Error('skill must delegate project routing to the generic routing reference');
+if (!skill.includes('references/engineering-invariants.md')) throw new Error('skill must delegate reusable correctness rules to engineering invariants');
 
 const marketplace = JSON.parse(await readFile('.agents/plugins/marketplace.json', 'utf8'));
 const entry = marketplace.plugins?.find((plugin) => plugin.name === manifest.name);
 if (!entry) throw new Error('marketplace does not expose plugin');
 if (entry.source?.path !== './') throw new Error('root plugin marketplace path must be ./');
 
-console.log(`Plugin structure valid: ${manifest.name}@${manifest.version}; scenarios=${scenarios.length}`);
+console.log(`Plugin structure valid: ${manifest.name}@${manifest.version}; architecture=project-first`);

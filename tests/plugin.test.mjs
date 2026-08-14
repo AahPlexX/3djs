@@ -1,165 +1,35 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, readdir } from 'node:fs/promises';
+import { access, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 
 const root = new URL('../', import.meta.url);
 const readText = (path) => readFile(new URL(path, root), 'utf8');
 const readJson = async (path) => JSON.parse(await readText(path));
-
-const REQUIRED_SCENARIO_FIELDS = ['id', 'title', 'request', 'doneWhen'];
-const REQUIRED_JOURNEY_FIELDS = ['id', 'persona', 'context', 'request', 'primaryScenario', 'requiredPackages', 'stressors', 'doneWhen'];
-const REQUIRED_PACKAGES = [
-  'three',
-  '@types/three',
-  '@react-three/fiber',
-  '@react-three/drei',
-  '@babylonjs/core',
-  'playcanvas',
-  'cesium',
-  '@dimforge/rapier3d',
-  '@gltf-transform/core',
-  '@gltf-transform/extensions',
-  '@types/webxr',
-];
-
-test('plugin manifest is a skill-only Codex plugin with stable metadata', async () => {
-  const manifest = await readJson('.codex-plugin/plugin.json');
-  assert.equal(manifest.name, 'current-3d-engineering');
-  assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
-  assert.equal(manifest.skills, './skills/');
-  assert.equal(manifest.repository, 'https://github.com/AahPlexX/3djs');
-  assert.ok(!('mcpServers' in manifest), 'MCP must not be declared unless one is actually implemented');
-});
-
-test('repo marketplace exposes the root plugin for ChatGPT/Codex installation', async () => {
-  const marketplace = await readJson('.agents/plugins/marketplace.json');
-  assert.equal(marketplace.name, 'aahplexx-3djs');
-  assert.equal(marketplace.plugins.length, 1);
-  const entry = marketplace.plugins[0];
-  assert.equal(entry.name, 'current-3d-engineering');
-  assert.equal(entry.source.source, 'local');
-  assert.equal(entry.source.path, './');
-  assert.equal(entry.policy.installation, 'AVAILABLE');
-  assert.equal(entry.policy.authentication, 'ON_INSTALL');
-  assert.ok(entry.category);
-});
-
-test('skill is discoverable and delegates heavy reference material', async () => {
-  const skill = await readText('skills/current-3d-engineering/SKILL.md');
-  assert.match(skill, /^---\nname: current-3d-engineering\ndescription: Use when /);
-  assert.match(skill, /references\/source-policy\.md/);
-  assert.match(skill, /references\/library-routing\.md/);
-  assert.match(skill, /references\/scenarios\.md/);
-  assert.match(skill, /scripts\/resolve-packages\.mjs/);
-  assert.match(skill, /current date/i);
-  assert.match(skill, /never infer/i);
-});
-
-test('source policy requires authoritative current sources and bans weak defaults', async () => {
-  const policy = (await readText('skills/current-3d-engineering/references/source-policy.md')).toLowerCase();
-  for (const expected of ['registry.npmjs.org', 'developer.mozilla.org', 'w3.org', 'khronos.org']) {
-    assert.ok(policy.includes(expected), `missing authoritative source: ${expected}`);
-  }
-  for (const prohibited of ['reddit.com', 'medium.com', 'wikipedia.org']) {
-    assert.ok(policy.includes(prohibited), `missing prohibited-source rule: ${prohibited}`);
-  }
-  assert.match(policy, /conflict/i);
-  assert.match(policy, /prerelease/i);
-});
-
-test('scenario catalog contains at least ten complete real-world flows', async () => {
-  const scenarios = await readJson('tests/scenarios.json');
-  assert.ok(Array.isArray(scenarios));
-  assert.ok(scenarios.length >= 10, `expected >=10 scenarios, got ${scenarios.length}`);
-  const ids = new Set();
-  for (const scenario of scenarios) {
-    for (const field of REQUIRED_SCENARIO_FIELDS) assert.ok(scenario[field], `${scenario.id ?? 'unknown'} missing ${field}`);
-    assert.ok(Array.isArray(scenario.doneWhen) && scenario.doneWhen.length >= 4, `${scenario.id} needs >=4 completion checks`);
-    assert.ok(!ids.has(scenario.id), `duplicate scenario id ${scenario.id}`);
-    ids.add(scenario.id);
-  }
-});
-
-test('human scenario reference mirrors every executable scenario id', async () => {
-  const scenarios = await readJson('tests/scenarios.json');
-  const reference = await readText('skills/current-3d-engineering/references/scenarios.md');
-  for (const scenario of scenarios) assert.ok(reference.includes(`\`${scenario.id}\``), `reference missing ${scenario.id}`);
-});
-
-test('five developer stress journeys are distinct, realistic, and mapped to supported scenarios', async () => {
-  const journeys = await readJson('tests/developer-journeys.json');
-  const scenarios = await readJson('tests/scenarios.json');
-  const scenarioIds = new Set(scenarios.map((scenario) => scenario.id));
-  assert.equal(journeys.length, 5, `expected exactly 5 stress journeys, got ${journeys.length}`);
-
-  const ids = new Set();
-  const personas = new Set();
-  const contexts = new Set();
-  for (const journey of journeys) {
-    for (const field of REQUIRED_JOURNEY_FIELDS) assert.ok(journey[field], `${journey.id ?? 'unknown'} missing ${field}`);
-    assert.ok(!ids.has(journey.id), `duplicate journey id ${journey.id}`);
-    assert.ok(!personas.has(journey.persona), `duplicate persona ${journey.persona}`);
-    assert.ok(!contexts.has(journey.context), `duplicate context ${journey.context}`);
-    assert.ok(scenarioIds.has(journey.primaryScenario), `${journey.id} maps to unknown scenario ${journey.primaryScenario}`);
-    assert.ok(Array.isArray(journey.requiredPackages) && journey.requiredPackages.length >= 1, `${journey.id} needs packages`);
-    assert.ok(Array.isArray(journey.stressors) && journey.stressors.length >= 5, `${journey.id} needs >=5 stressors`);
-    assert.ok(Array.isArray(journey.doneWhen) && journey.doneWhen.length >= 6, `${journey.id} needs >=6 completion gates`);
-    ids.add(journey.id);
-    personas.add(journey.persona);
-    contexts.add(journey.context);
-  }
-});
-
-test('package resolver tracks the core ecosystem without hardcoded latest versions', async () => {
-  const resolver = await readText('skills/current-3d-engineering/scripts/resolve-packages.mjs');
-  for (const packageName of REQUIRED_PACKAGES) assert.ok(resolver.includes(packageName), `resolver missing ${packageName}`);
-  assert.match(resolver, /registry\.npmjs\.org/);
-  assert.match(resolver, /dist-tags/);
-  assert.doesNotMatch(resolver, /latest\s*:\s*["']\d/);
-});
-
-test('repository provides CI and offline structure verification', async () => {
-  const packageJson = await readJson('package.json');
-  assert.equal(packageJson.private, true);
-  assert.ok(packageJson.scripts?.test);
-  assert.ok(packageJson.scripts?.verify);
-  const workflow = await readText('.github/workflows/ci.yml');
-  assert.match(workflow, /npm test/);
-  assert.match(workflow, /npm run verify/);
-  assert.match(workflow, /pull_request:/);
-  assert.match(workflow, /push:/);
-});
-
-test('all reference files are intentionally scoped and non-empty', async () => {
-  const dir = new URL('skills/current-3d-engineering/references/', root);
-  const files = (await readdir(dir)).filter((name) => name.endsWith('.md'));
-  assert.ok(files.length >= 3);
-  for (const file of files) {
-    const text = await readFile(join(dir.pathname, file), 'utf8');
-    assert.ok(text.trim().length > 200, `${file} is unexpectedly thin`);
-  }
-});
-
 const resolverPath = new URL('../skills/current-3d-engineering/scripts/resolve-packages.mjs', import.meta.url).pathname;
 const publicRegistry = 'https://registry.npmjs.org';
 
-async function runResolver(packageNames) {
-  const args = [resolverPath, '--registry', publicRegistry, '--json'];
-  for (const packageName of packageNames) args.push('--package', packageName);
-
+async function runResolverRaw(args = []) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(process.execPath, [resolverPath, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (chunk) => { stdout += chunk; });
     child.stderr.on('data', (chunk) => { stderr += chunk; });
     child.on('error', reject);
-    child.on('close', (code) => code === 0
-      ? resolve(JSON.parse(stdout))
-      : reject(new Error(stderr || stdout || `resolver exited ${code}`)));
+    child.on('close', (code) => resolve({ code, stdout, stderr }));
   });
+}
+
+async function runResolver({ packageNames = [], projectPath = null } = {}) {
+  const args = ['--registry', publicRegistry, '--json'];
+  if (projectPath) args.push('--project', projectPath);
+  for (const packageName of packageNames) args.push('--package', packageName);
+  const result = await runResolverRaw(args);
+  if (result.code !== 0) throw new Error(result.stderr || result.stdout || `resolver exited ${result.code}`);
+  return JSON.parse(result.stdout);
 }
 
 async function fetchPublishedLatest(packageName) {
@@ -186,16 +56,135 @@ async function fetchPublishedLatest(packageName) {
   throw new Error(`${packageName}: public npm registry request failed after 3 attempts`, { cause: lastError });
 }
 
-test('tracked 3D packages resolve through the public npm registry', async () => {
-  const manifests = [];
-  for (const packageName of REQUIRED_PACKAGES) manifests.push(await fetchPublishedLatest(packageName));
-  assert.equal(manifests.length, REQUIRED_PACKAGES.length);
+async function collectFiles(directoryUrl) {
+  const entries = await readdir(directoryUrl, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const child = new URL(`${entry.name}${entry.isDirectory() ? '/' : ''}`, directoryUrl);
+    if (entry.isDirectory()) files.push(...await collectFiles(child));
+    else files.push(child);
+  }
+  return files;
+}
+
+test('plugin manifest is a skill-only Codex plugin with stable metadata', async () => {
+  const manifest = await readJson('.codex-plugin/plugin.json');
+  assert.equal(manifest.name, 'current-3d-engineering');
+  assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
+  assert.equal(manifest.skills, './skills/');
+  assert.equal(manifest.repository, 'https://github.com/AahPlexX/3djs');
+  assert.ok(!('mcpServers' in manifest), 'MCP must not be declared unless one is actually implemented');
 });
 
-test('package resolver agrees with live npm manifests end to end', async () => {
-  const packageNames = ['three', '@types/three', '@react-three/fiber', '@gltf-transform/extensions', 'cesium', '@types/webxr'];
+test('repo marketplace exposes the root plugin for ChatGPT/Codex installation', async () => {
+  const marketplace = await readJson('.agents/plugins/marketplace.json');
+  assert.equal(marketplace.name, 'aahplexx-3djs');
+  assert.equal(marketplace.plugins.length, 1);
+  const entry = marketplace.plugins[0];
+  assert.equal(entry.name, 'current-3d-engineering');
+  assert.equal(entry.source.source, 'local');
+  assert.equal(entry.source.path, './');
+  assert.equal(entry.policy.installation, 'AVAILABLE');
+  assert.equal(entry.policy.authentication, 'ON_INSTALL');
+  assert.ok(entry.category);
+});
+
+test('skill is project-first and delegates only generic reference material', async () => {
+  const skill = await readText('skills/current-3d-engineering/SKILL.md');
+  assert.match(skill, /^---\nname: current-3d-engineering\ndescription: Use when /);
+  assert.match(skill, /references\/source-policy\.md/);
+  assert.match(skill, /references\/project-routing\.md/);
+  assert.match(skill, /references\/engineering-invariants\.md/);
+  assert.match(skill, /scripts\/resolve-packages\.mjs/);
+  assert.match(skill, /current date/i);
+  assert.match(skill, /never infer/i);
+  assert.doesNotMatch(skill, /references\/scenarios\.md|scenario id|persona|primaryScenario/i);
+});
+
+test('source policy requires authoritative current sources without a library allowlist', async () => {
+  const policy = (await readText('skills/current-3d-engineering/references/source-policy.md')).toLowerCase();
+  for (const expected of ['registry.npmjs.org', 'developer.mozilla.org', 'w3.org', 'khronos.org']) {
+    assert.ok(policy.includes(expected), `missing authoritative source: ${expected}`);
+  }
+  for (const prohibited of ['reddit.com', 'medium.com', 'wikipedia.org']) {
+    assert.ok(policy.includes(prohibited), `missing prohibited-source rule: ${prohibited}`);
+  }
+  assert.match(policy, /maintainer|upstream/);
+  assert.match(policy, /conflict/i);
+  assert.match(policy, /prerelease/i);
+});
+
+test('active plugin tree contains no encoded scenario or persona contracts', async () => {
+  for (const obsoletePath of [
+    'tests/scenarios.json',
+    'tests/developer-journeys.json',
+    'skills/current-3d-engineering/references/scenarios.md',
+    'skills/current-3d-engineering/references/library-routing.md',
+  ]) {
+    await assert.rejects(access(new URL(obsoletePath, root)), `obsolete encoded contract still exists: ${obsoletePath}`);
+  }
+
+  const files = [
+    ...await collectFiles(new URL('../skills/current-3d-engineering/', import.meta.url)),
+    ...await collectFiles(new URL('./', import.meta.url)),
+  ];
+  const prohibited = [/\bS\d{2}-[a-z0-9-]+\b/i, /primaryScenario/, /developer-journeys\.json/, /tests\/scenarios\.json/, /references\/scenarios\.md/];
+  for (const file of files) {
+    if (!/\.(?:md|mjs|json)$/.test(file.pathname)) continue;
+    const text = await readFile(file, 'utf8');
+    for (const pattern of prohibited) assert.doesNotMatch(text, pattern, `${file.pathname} contains encoded scenario/persona contract`);
+  }
+});
+
+test('package resolver has no recognized-package allowlist', async () => {
+  const resolver = await readText('skills/current-3d-engineering/scripts/resolve-packages.mjs');
+  assert.doesNotMatch(resolver, /DEFAULT_PACKAGES|REQUIRED_PACKAGES|SUPPORTED_PACKAGES/);
+  for (const previouslyCuratedName of ['@react-three/fiber', '@babylonjs/core', 'playcanvas', 'cesium', '@gltf-transform/core']) {
+    assert.ok(!resolver.includes(`'${previouslyCuratedName}'`) && !resolver.includes(`"${previouslyCuratedName}"`), `resolver hardcodes ${previouslyCuratedName}`);
+  }
+  assert.match(resolver, /registry\.npmjs\.org/);
+  assert.match(resolver, /dist-tags/);
+  assert.match(resolver, /Object\.keys\(project\.specs\)/);
+  assert.doesNotMatch(resolver, /latest\s*:\s*["']\d/);
+});
+
+test('resolver requires actual project/package input instead of silently choosing an ecosystem', async () => {
+  const result = await runResolverRaw(['--json']);
+  assert.notEqual(result.code, 0);
+  assert.match(`${result.stderr}\n${result.stdout}`, /--package|--project/i);
+});
+
+test('explicit arbitrary package names resolve through the public npm registry', async () => {
+  const packageNames = ['ogl', 'typescript'];
+  const report = await runResolver({ packageNames });
+  assert.deepEqual(report.failures, []);
+  assert.deepEqual(new Set(report.packages.map((entry) => entry.name)), new Set(packageNames));
+});
+
+test('project mode resolves every direct dependency section without filtering by known libraries', async () => {
+  const projectPath = await mkdtemp(join(tmpdir(), 'current-3d-project-'));
+  try {
+    const specs = {
+      dependencies: { three: '^0.1.0', ogl: '^1.0.0' },
+      devDependencies: { typescript: '^5.0.0' },
+      peerDependencies: { '@types/webxr': '^0.5.0' },
+      optionalDependencies: {},
+    };
+    await writeFile(join(projectPath, 'package.json'), JSON.stringify({ name: 'resolver-property-test', private: true, ...specs }, null, 2));
+    const expected = Object.keys({ ...specs.dependencies, ...specs.devDependencies, ...specs.peerDependencies, ...specs.optionalDependencies });
+    const report = await runResolver({ projectPath });
+    assert.deepEqual(report.failures, []);
+    assert.deepEqual(new Set(report.packages.map((entry) => entry.name)), new Set(expected));
+    for (const entry of report.packages) assert.equal(entry.installedSpec, { ...specs.dependencies, ...specs.devDependencies, ...specs.peerDependencies, ...specs.optionalDependencies }[entry.name]);
+  } finally {
+    await rm(projectPath, { recursive: true, force: true });
+  }
+});
+
+test('package resolver agrees with independent live npm manifests end to end', async () => {
+  const packageNames = ['ogl', 'typescript'];
   const liveManifests = await Promise.all(packageNames.map(fetchPublishedLatest));
-  const report = await runResolver(packageNames);
+  const report = await runResolver({ packageNames });
 
   assert.equal(report.registry, publicRegistry);
   assert.deepEqual(report.failures, []);
@@ -209,21 +198,34 @@ test('package resolver agrees with live npm manifests end to end', async () => {
     assert.match(resolved.latestStable, /^\d+\.\d+\.\d+(?:\+[0-9A-Za-z.-]+)?$/);
     assert.match(resolved.recommendedVersion, /^\d+\.\d+\.\d+(?:\+[0-9A-Za-z.-]+)?$/);
   }
-
-  const fiber = report.packages.find((entry) => entry.name === '@react-three/fiber');
-  assert.ok(Object.keys(fiber.peerDependencies).length > 0, 'R3F peer dependency metadata must come from the live selected release');
 });
 
-test('each developer journey resolves its own real package set through npm', async () => {
-  const journeys = await readJson('tests/developer-journeys.json');
+test('structure validator is generic and does not require scenario counts', async () => {
+  const validator = await readText('skills/current-3d-engineering/scripts/validate-plugin.mjs');
+  assert.match(validator, /project-routing\.md/);
+  assert.match(validator, /engineering-invariants\.md/);
+  assert.doesNotMatch(validator, /scenarios\.json|scenarios\.md|scenario count|scenarios=/i);
+});
 
-  for (const journey of journeys) {
-    const report = await runResolver(journey.requiredPackages);
-    assert.deepEqual(report.failures, [], `${journey.id}: resolver failures`);
-    const resolvedNames = new Set(report.packages.map((entry) => entry.name));
-    for (const packageName of journey.requiredPackages) {
-      assert.ok(resolvedNames.has(packageName), `${journey.id}: resolver omitted ${packageName}`);
-    }
+test('repository provides CI and offline structure verification', async () => {
+  const packageJson = await readJson('package.json');
+  assert.equal(packageJson.private, true);
+  assert.ok(packageJson.scripts?.test);
+  assert.ok(packageJson.scripts?.verify);
+  const workflow = await readText('.github/workflows/ci.yml');
+  assert.match(workflow, /npm test/);
+  assert.match(workflow, /npm run verify/);
+  assert.match(workflow, /pull_request:/);
+  assert.match(workflow, /push:/);
+});
+
+test('all active reference files are intentionally scoped and non-empty', async () => {
+  const dir = new URL('skills/current-3d-engineering/references/', root);
+  const files = (await readdir(dir)).filter((name) => name.endsWith('.md'));
+  assert.ok(files.length >= 3);
+  for (const file of files) {
+    const text = await readFile(new URL(file, dir), 'utf8');
+    assert.ok(text.trim().length > 200, `${file} is unexpectedly thin`);
   }
 });
 

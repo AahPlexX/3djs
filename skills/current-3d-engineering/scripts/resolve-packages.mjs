@@ -3,26 +3,8 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-const DEFAULT_PACKAGES = [
-  'three',
-  '@types/three',
-  '@react-three/fiber',
-  '@react-three/drei',
-  '@react-three/rapier',
-  '@babylonjs/core',
-  'playcanvas',
-  'cesium',
-  '@dimforge/rapier3d',
-  '@dimforge/rapier3d-compat',
-  '@gltf-transform/core',
-  '@gltf-transform/extensions',
-  '@gltf-transform/functions',
-  '@gltf-transform/cli',
-  '@types/webxr',
-];
-
 function usage() {
-  return `Current 3D package resolver\n\nUsage:\n  node resolve-packages.mjs [options]\n\nOptions:\n  --package <name>   Resolve one package; repeat for more packages\n  --project <path>   Read dependency specs from <path>/package.json\n  --registry <url>   npm registry base URL (default: https://registry.npmjs.org)\n  --json             Emit JSON (default output is a readable table)\n  --help             Show this help\n`;
+  return `Current 3D package resolver\n\nUsage:\n  node resolve-packages.mjs --project <path> [options]\n  node resolve-packages.mjs --package <name> [--package <name> ...] [options]\n\nInput:\n  --package <name>   Resolve any npm package name; repeat for more packages\n  --project <path>   Read direct dependency specs from <path>/package.json\n                     When no --package is supplied, resolve every declared direct dependency\n\nOptions:\n  --registry <url>   npm registry base URL (default: https://registry.npmjs.org)\n  --json             Emit JSON (default output is a readable table)\n  --help             Show this help\n\nThere is no built-in package allowlist or implicit ecosystem selection.\n`;
 }
 
 function parseArgs(argv) {
@@ -96,7 +78,10 @@ async function readProjectSpecs(projectPath) {
 
 async function fetchMetadata(registry, packageName) {
   const url = `${registry}/${encodeURIComponent(packageName)}`;
-  const response = await fetch(url, { headers: { accept: 'application/json' } });
+  const response = await fetch(url, {
+    headers: { accept: 'application/json' },
+    signal: AbortSignal.timeout(20_000),
+  });
   if (!response.ok) throw new Error(`${packageName}: registry returned HTTP ${response.status}`);
   return response.json();
 }
@@ -146,12 +131,13 @@ async function main() {
   }
 
   const project = await readProjectSpecs(options.project);
-  let packageNames = options.packages.length ? options.packages : DEFAULT_PACKAGES;
-  if (options.project && options.packages.length === 0) {
-    const installedTracked = DEFAULT_PACKAGES.filter((name) => project.specs[name]);
-    if (installedTracked.length) packageNames = installedTracked;
-  }
+  const discoveredProjectPackages = Object.keys(project.specs);
+  let packageNames = options.packages.length ? options.packages : discoveredProjectPackages;
   packageNames = [...new Set(packageNames)];
+
+  if (packageNames.length === 0) {
+    throw new Error('No packages to resolve. Provide --package <name> or --project <path> with declared dependencies.');
+  }
 
   const packages = [];
   const failures = [];

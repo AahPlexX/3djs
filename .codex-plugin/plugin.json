@@ -1,6 +1,6 @@
 {
   "name": "current-3d-engineering",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Current-source JavaScript and TypeScript 3D engineering for ChatGPT and Codex.",
   "author": {
     "name": "AahPlexX",
@@ -26,7 +26,7 @@
   "interface": {
     "displayName": "Current 3D Engineering",
     "shortDescription": "Current-source 3D web engineering",
-    "longDescription": "Verifies current package, API, browser, and standards information before building, debugging, upgrading, or reviewing JavaScript and TypeScript 3D software.",
+    "longDescription": "Verifies current package, API, browser, standards, TypeScript declaration, and asset-pipeline information before building, debugging, upgrading, or reviewing JavaScript and TypeScript 3D software.",
     "developerName": "AahPlexX",
     "capabilities": [
       "Read",

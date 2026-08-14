@@ -4,27 +4,27 @@ These scenarios define the minimum behaviors the skill must successfully route. 
 
 ## `S01-three-vite-greenfield` — Greenfield Three.js + Vite TypeScript
 
-**Flow:** inspect the Vite/TS configuration → resolve current stable `three` → verify the exact Three.js APIs/addon import paths → create the scene/camera/renderer around the existing DOM layout → implement container-based responsive sizing and one time-aware loop → add teardown → run typecheck/build/tests and browser smoke checks.
+**Flow:** inspect or establish the Vite/TS configuration → resolve current stable `three` and verify the project's required Three.js declarations (`@types/three` when current official/upstream guidance and the compiler require it) → verify the exact Three.js APIs/addon import paths → create the scene/camera/renderer around the existing DOM layout → implement container-based responsive sizing and one time-aware loop → add teardown → run typecheck/build/tests and browser smoke checks.
 
-**Failure traps:** copied imports from an older Three revision, canvas sized only once, duplicate loops, uncapped assumptions about DPR, and undisposed controls/textures/renderer.
+**Failure traps:** copied imports from an older Three revision, assuming runtime package installation guarantees TypeScript declarations, canvas sized only once, duplicate loops, uncapped assumptions about DPR, and undisposed controls/textures/renderer.
 
 ## `S02-r3f-react-integration` — R3F/Drei in an existing React app
 
-**Flow:** inspect React/React DOM majors and lockfile → verify the current Fiber↔React major pairing and Drei peers → install the smallest package set → place `<Canvas>` inside the app's real responsive layout → use R3F lifecycle/hooks instead of manually owning a second renderer loop → verify loading/error states, route remount, pointer/touch behavior, build and tests.
+**Flow:** inspect React/React DOM majors, TypeScript configuration, framework client/server boundary, and lockfile → verify the current Fiber↔React major pairing, Three.js/type requirements, and Drei peers → install the smallest coherent package set → place `<Canvas>` inside the app's real responsive client layout → use R3F lifecycle/hooks instead of manually owning a second renderer loop → verify loading/error states, route remount, pointer/touch behavior, typecheck, production build and tests.
 
-**Failure traps:** Fiber major mismatch, browser-only helper used on a native route, raw Three loop fighting R3F, and client-only assumptions crossing an SSR boundary.
+**Failure traps:** Fiber major mismatch, missing/mismatched Three.js declarations, browser-only helper used on a native route, raw Three loop fighting R3F, and client-only assumptions crossing an SSR boundary.
 
 ## `S03-safe-3d-upgrade` — Existing stack upgrade
 
-**Flow:** record manifest and lockfile state → identify direct and peer-coupled 3D packages → resolve current stable releases and exact peers → read official migration/release/API material for only the crossed versions → upgrade the smallest coherent set → update affected API calls → verify dependency tree, lockfile diff, tests, build, and original user flows.
+**Flow:** record manifest and lockfile state → identify direct, type, and peer-coupled 3D packages → resolve current stable releases and exact peers → read official migration/release/API material for only the crossed versions → upgrade the smallest coherent set → update affected API calls → verify dependency tree, lockfile diff, typecheck, tests, build, and original user flows.
 
-**Failure traps:** upgrading wrappers independently of their peers, silently selecting alpha/canary, or rewriting unrelated rendering code during a dependency migration.
+**Failure traps:** upgrading wrappers independently of their peers, allowing runtime/types drift, silently selecting alpha/canary, or rewriting unrelated rendering code during a dependency migration.
 
 ## `S04-gltf-production-pipeline` — glTF/GLB optimization
 
-**Flow:** inspect source/runtime asset constraints → confirm current Khronos glTF semantics and engine loader extension support → select build-time transforms only when they serve a measured goal → configure decoders/transcoders and production asset URLs → validate optimized models → compare visual/animation fidelity and production loading.
+**Flow:** inspect source/runtime asset constraints and preserve authoring masters → confirm current Khronos glTF semantics and engine loader extension support → resolve the glTF Transform packages actually required (`core`, `extensions`, `functions`, and/or CLI) and keep their compatibility coherent → select build-time transforms only when they serve a measured goal → verify any transform-specific codecs/encoders from current official docs → configure runtime decoders/transcoders and production asset URLs → validate optimized models → compare file size, visual/animation fidelity, VRAM/runtime behavior where relevant, and production loading.
 
-**Failure traps:** enabling Draco/KTX2/Meshopt without runtime support, treating glTF as an authoring master, dev-server-only decoder paths, and deleting recoverable source assets.
+**Failure traps:** omitting the extension package needed by a scripted pipeline, enabling Draco/KTX2/Meshopt without runtime support, confusing a CLI-bundled capability with the scripting API's dependencies, treating glTF as an authoring master, dev-server-only decoder paths, and deleting recoverable source assets.
 
 ## `S05-webgpu-progressive-enhancement` — WebGPU + fallback
 
@@ -52,15 +52,15 @@ These scenarios define the minimum behaviors the skill must successfully route. 
 
 ## `S09-cesium-geospatial` — CesiumJS geospatial app
 
-**Flow:** resolve current `cesium` → verify the current npm/bundler setup → configure `CESIUM_BASE_URL` before import when applicable and make Workers/ThirdParty/Assets/Widgets available → include required widget CSS → configure content/token use → destroy the viewer on teardown → test the production deployment's static files, workers and 3D content.
+**Flow:** resolve current `cesium` and inspect the actual bundler/deployment base path → verify the current npm/bundler setup → configure `CESIUM_BASE_URL` before import when applicable and make Workers/ThirdParty/Assets/Widgets available at the deployed path → include required widget CSS → configure content/token use → destroy the viewer on teardown → test the production deployment's static files, workers and 3D content from the real subpath/CDN origin.
 
-**Failure traps:** a dev build that works only because assets are served differently, missing workers, setting `CESIUM_BASE_URL` too late, or treating a public-service access token like an unrelated server secret without understanding its intended scope.
+**Failure traps:** a dev build that works only because assets are served differently, missing workers or `ThirdParty`, setting `CESIUM_BASE_URL` too late, hardcoding `/` for an app deployed below a subpath, or treating a public-service access token like an unrelated server secret without understanding its intended scope.
 
 ## `S10-webxr-immersive` — WebXR VR/AR
 
-**Flow:** verify current W3C WebXR and engine integration docs → require HTTPS/secure context → check requested session support → begin immersive sessions from valid user activation → declare required vs optional features deliberately → handle frame/session lifecycle and exit → preserve required non-XR behavior → test on supported hardware when available.
+**Flow:** verify current W3C WebXR and engine integration docs → in TypeScript projects inspect whether the active DOM libs expose the required XR interfaces and resolve `@types/webxr` only if needed → require HTTPS/secure context → check requested session support → begin immersive sessions from valid user activation → declare required vs optional features deliberately → handle frame/session lifecycle and exit → preserve required non-XR behavior → run typecheck/browser checks and test on supported hardware when available.
 
-**Failure traps:** old proposal-era snippets, auto-starting immersive sessions, requesting unsupported required features without fallback, and claiming headset validation without physical evidence.
+**Failure traps:** old proposal-era snippets, missing XR TypeScript declarations hidden until CI, auto-starting immersive sessions, requesting unsupported required features without fallback, using a polyfill as a substitute for real hardware capability, and claiming headset validation without physical evidence.
 
 ## `S11-mobile-gpu-performance` — Mobile performance/memory diagnosis
 

@@ -9,8 +9,10 @@ const readText = (path) => readFile(new URL(path, root), 'utf8');
 const readJson = async (path) => JSON.parse(await readText(path));
 
 const REQUIRED_SCENARIO_FIELDS = ['id', 'title', 'request', 'doneWhen'];
+const REQUIRED_JOURNEY_FIELDS = ['id', 'persona', 'context', 'request', 'primaryScenario', 'requiredPackages', 'stressors', 'doneWhen'];
 const REQUIRED_PACKAGES = [
   'three',
+  '@types/three',
   '@react-three/fiber',
   '@react-three/drei',
   '@babylonjs/core',
@@ -18,6 +20,8 @@ const REQUIRED_PACKAGES = [
   'cesium',
   '@dimforge/rapier3d',
   '@gltf-transform/core',
+  '@gltf-transform/extensions',
+  '@types/webxr',
 ];
 
 test('plugin manifest is a skill-only Codex plugin with stable metadata', async () => {
@@ -82,6 +86,30 @@ test('human scenario reference mirrors every executable scenario id', async () =
   const scenarios = await readJson('tests/scenarios.json');
   const reference = await readText('skills/current-3d-engineering/references/scenarios.md');
   for (const scenario of scenarios) assert.ok(reference.includes(`\`${scenario.id}\``), `reference missing ${scenario.id}`);
+});
+
+test('five developer stress journeys are distinct, realistic, and mapped to supported scenarios', async () => {
+  const journeys = await readJson('tests/developer-journeys.json');
+  const scenarios = await readJson('tests/scenarios.json');
+  const scenarioIds = new Set(scenarios.map((scenario) => scenario.id));
+  assert.equal(journeys.length, 5, `expected exactly 5 stress journeys, got ${journeys.length}`);
+
+  const ids = new Set();
+  const personas = new Set();
+  const contexts = new Set();
+  for (const journey of journeys) {
+    for (const field of REQUIRED_JOURNEY_FIELDS) assert.ok(journey[field], `${journey.id ?? 'unknown'} missing ${field}`);
+    assert.ok(!ids.has(journey.id), `duplicate journey id ${journey.id}`);
+    assert.ok(!personas.has(journey.persona), `duplicate persona ${journey.persona}`);
+    assert.ok(!contexts.has(journey.context), `duplicate context ${journey.context}`);
+    assert.ok(scenarioIds.has(journey.primaryScenario), `${journey.id} maps to unknown scenario ${journey.primaryScenario}`);
+    assert.ok(Array.isArray(journey.requiredPackages) && journey.requiredPackages.length >= 1, `${journey.id} needs packages`);
+    assert.ok(Array.isArray(journey.stressors) && journey.stressors.length >= 5, `${journey.id} needs >=5 stressors`);
+    assert.ok(Array.isArray(journey.doneWhen) && journey.doneWhen.length >= 6, `${journey.id} needs >=6 completion gates`);
+    ids.add(journey.id);
+    personas.add(journey.persona);
+    contexts.add(journey.context);
+  }
 });
 
 test('package resolver tracks the core ecosystem without hardcoded latest versions', async () => {
@@ -165,7 +193,7 @@ test('tracked 3D packages resolve through the public npm registry', async () => 
 });
 
 test('package resolver agrees with live npm manifests end to end', async () => {
-  const packageNames = ['three', '@react-three/fiber', 'cesium'];
+  const packageNames = ['three', '@types/three', '@react-three/fiber', '@gltf-transform/extensions', 'cesium', '@types/webxr'];
   const liveManifests = await Promise.all(packageNames.map(fetchPublishedLatest));
   const report = await runResolver(packageNames);
 
@@ -184,6 +212,19 @@ test('package resolver agrees with live npm manifests end to end', async () => {
 
   const fiber = report.packages.find((entry) => entry.name === '@react-three/fiber');
   assert.ok(Object.keys(fiber.peerDependencies).length > 0, 'R3F peer dependency metadata must come from the live selected release');
+});
+
+test('each developer journey resolves its own real package set through npm', async () => {
+  const journeys = await readJson('tests/developer-journeys.json');
+
+  for (const journey of journeys) {
+    const report = await runResolver(journey.requiredPackages);
+    assert.deepEqual(report.failures, [], `${journey.id}: resolver failures`);
+    const resolvedNames = new Set(report.packages.map((entry) => entry.name));
+    for (const packageName of journey.requiredPackages) {
+      assert.ok(resolvedNames.has(packageName), `${journey.id}: resolver omitted ${packageName}`);
+    }
+  }
 });
 
 test('integration suite contains no loopback registry replacement', async () => {

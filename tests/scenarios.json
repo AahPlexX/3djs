@@ -1,0 +1,134 @@
+[
+  {
+    "id": "S01-three-vite-greenfield",
+    "title": "Greenfield Three.js + Vite TypeScript scene",
+    "request": "Create a responsive interactive Three.js scene in a Vite TypeScript application.",
+    "doneWhen": [
+      "Current stable Three.js metadata and the exact APIs used are verified from authoritative sources.",
+      "The canvas follows its container, updates camera/renderer sizing, and handles high-DPI without an unconditional maximum DPR assumption.",
+      "There is one animation loop and teardown disposes listeners and owned GPU resources.",
+      "Typecheck/build/tests pass and the production build loads without console or asset errors."
+    ]
+  },
+  {
+    "id": "S02-r3f-react-integration",
+    "title": "Add React Three Fiber and Drei to an existing React application",
+    "request": "Add a reusable 3D product component to an existing React application using R3F/Drei.",
+    "doneWhen": [
+      "Installed React major is discovered before selecting Fiber/Drei versions and current peer compatibility is verified.",
+      "The scene uses R3F's render lifecycle rather than a duplicate requestAnimationFrame loop.",
+      "Canvas sizing, suspense/loading/error behavior, and component teardown fit the existing application.",
+      "The existing application's typecheck, tests, lint, build, and representative responsive interaction checks pass."
+    ]
+  },
+  {
+    "id": "S03-safe-3d-upgrade",
+    "title": "Safely upgrade an existing 3D dependency stack",
+    "request": "Upgrade Three.js, R3F/Drei, engine wrappers, or related 3D packages without breaking the application.",
+    "doneWhen": [
+      "The existing manifest/lockfile and exact installed/ranged versions are recorded before changes.",
+      "Registry stable versions, peer dependencies, engine requirements, and official migration/API changes are verified.",
+      "The upgrade is minimal and any required API migration is scoped to affected code rather than unrelated refactoring.",
+      "Tests/typecheck/lint/build plus original 3D user flows pass, and the lockfile contains no unintended dependency drift."
+    ]
+  },
+  {
+    "id": "S04-gltf-production-pipeline",
+    "title": "Production glTF/GLB asset loading and optimization",
+    "request": "Load and optimize production glTF assets with optional Meshopt/Draco/KTX2-style compression.",
+    "doneWhen": [
+      "The engine loader and every requested glTF extension/decoder path are verified against current official docs and Khronos glTF.",
+      "Build-time transformations use current glTF Transform APIs/CLI where appropriate and original source assets remain recoverable.",
+      "Production output serves model, texture, decoder, and worker assets from correct URLs/MIME types.",
+      "Visual/animation fidelity is checked after optimization and failure/loading states are handled without silent scene corruption."
+    ]
+  },
+  {
+    "id": "S05-webgpu-progressive-enhancement",
+    "title": "WebGPU rendering with a supported fallback",
+    "request": "Use WebGPU when supported while retaining a functional WebGL path for the product's required browsers.",
+    "doneWhen": [
+      "Current WebGPU browser status and the selected engine's exact WebGPU initialization API are verified.",
+      "Capability detection happens before selecting the backend and secure-context/deployment requirements are satisfied.",
+      "Unsupported or failed WebGPU initialization reaches the defined WebGL/fallback experience rather than a blank canvas.",
+      "Both available backends are smoke-tested for rendering, resize, assets, teardown, and console/runtime errors."
+    ]
+  },
+  {
+    "id": "S06-rapier-physics",
+    "title": "Add Rapier physics to a browser 3D application",
+    "request": "Add deterministic-feeling rigid-body physics with Rapier to a Three.js or R3F application.",
+    "doneWhen": [
+      "The normal Rapier WASM package is preferred unless verified bundler/runtime limitations justify the compat package.",
+      "Async WASM initialization completes before world use and simulation stepping has a deliberate fixed/variable timestep strategy.",
+      "Visual transforms and physics transforms have one explicit synchronization direction and teardown releases the physics world/resources.",
+      "Build and runtime smoke tests exercise collision, pause/remount/route behavior, and the targeted browser environment."
+    ]
+  },
+  {
+    "id": "S07-babylon-viewer-app",
+    "title": "Babylon.js product viewer or interactive application",
+    "request": "Build or extend a Babylon.js viewer with glTF loading, camera controls, and production packaging.",
+    "doneWhen": [
+      "Current scoped Babylon.js ES-module packages and APIs are verified; legacy UMD packages are not chosen for a new bundled app without a reason.",
+      "Only required engine/features/loaders are imported and asset/plugin registration is explicit.",
+      "Engine resize/render lifecycle and scene/engine disposal are wired to application lifecycle.",
+      "Production build, model loading, controls, resize, and console/runtime behavior are verified."
+    ]
+  },
+  {
+    "id": "S08-playcanvas-engine-app",
+    "title": "PlayCanvas browser game or interactive 3D application",
+    "request": "Create or modernize a PlayCanvas Engine application with WebGPU/WebGL2-aware rendering.",
+    "doneWhen": [
+      "The current PlayCanvas package/API and supported graphics devices are verified from official sources.",
+      "The application initializes the requested graphics backend with capability-aware fallback consistent with product support targets.",
+      "Entities/components/assets and application lifecycle use current engine APIs without mixing obsolete examples.",
+      "Build and representative browser/device smoke tests cover rendering, input, resize, asset load, and teardown."
+    ]
+  },
+  {
+    "id": "S09-cesium-geospatial",
+    "title": "CesiumJS globe, terrain, and 3D Tiles application",
+    "request": "Build a CesiumJS geospatial experience with terrain/3D Tiles and production bundling.",
+    "doneWhen": [
+      "Current CesiumJS package/setup guidance is verified before configuring the bundler.",
+      "CESIUM_BASE_URL/static Workers, ThirdParty, Assets, and Widgets are correctly served or handled by a verified integration and CSS is included as needed.",
+      "Tokens/credentials follow the service's intended client/server scope and no unrelated secret is shipped to the browser.",
+      "Production build loads required workers/assets/terrain/tiles, resizes correctly, and destroys owned viewers/resources on teardown."
+    ]
+  },
+  {
+    "id": "S10-webxr-immersive",
+    "title": "WebXR immersive VR/AR experience",
+    "request": "Add an immersive WebXR mode to an existing web 3D scene.",
+    "doneWhen": [
+      "Current W3C WebXR semantics and the selected engine's integration API are verified instead of relying on old tutorials.",
+      "Secure context, navigator/session support, user activation, required/optional features, and session-end behavior are handled.",
+      "A non-XR path remains usable when the product requires access on devices without the requested XR mode.",
+      "The experience is tested on representative supported XR hardware/browser when available, with environment limitations stated when not available."
+    ]
+  },
+  {
+    "id": "S11-mobile-gpu-performance",
+    "title": "Diagnose mobile GPU crashes, stutter, or memory leaks",
+    "request": "Find and fix a 3D experience that becomes slow, loses context, or crashes on mobile/high-DPI devices.",
+    "doneWhen": [
+      "The failure is reproduced or instrumented before optimization and console/context-loss evidence is captured.",
+      "Resolution/DPR, draw calls, texture formats/sizes, geometry, render targets, post-processing, asset lifetime, and per-frame allocations are measured rather than guessed.",
+      "Fixes preserve visual requirements while removing verified bottlenecks/leaks and dispose owned resources on navigation/reload.",
+      "The original failing device class plus desktop regression targets are exercised after the change."
+    ]
+  },
+  {
+    "id": "S12-ssr-framework-boundary",
+    "title": "3D inside SSR or hybrid rendering frameworks",
+    "request": "Integrate a Three.js/R3F/engine canvas into an SSR or hybrid-rendered application without server crashes or hydration problems.",
+    "doneWhen": [
+      "The framework's current client boundary/dynamic-loading mechanism is verified from its official docs before code is written.",
+      "DOM/WebGL/WebGPU/WebXR initialization cannot execute on the server and the render target exists before engine creation.",
+      "Loading/layout avoids hydration-size mismatches and route/remount behavior cleans up all owned render resources/listeners.",
+      "Server build, client hydration/navigation, production build, and representative responsive scene interaction all pass."
+    ]
+  }
+]

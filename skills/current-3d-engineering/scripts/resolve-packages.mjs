@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 
 const DEFAULT_PACKAGES = [
   'three',
+  '@types/three',
   '@react-three/fiber',
   '@react-three/drei',
   '@react-three/rapier',
@@ -14,8 +15,10 @@ const DEFAULT_PACKAGES = [
   '@dimforge/rapier3d',
   '@dimforge/rapier3d-compat',
   '@gltf-transform/core',
+  '@gltf-transform/extensions',
   '@gltf-transform/functions',
   '@gltf-transform/cli',
+  '@types/webxr',
 ];
 
 function usage() {

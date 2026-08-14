@@ -50,7 +50,7 @@ npm test
 npm run verify
 ```
 
-The contract suite validates plugin packaging, skill discovery, authoritative-source policy, marketplace wiring, scenario completeness, resolver behavior (including a local mock registry), and CI wiring.
+The contract suite validates plugin packaging, skill discovery, authoritative-source policy, marketplace wiring, scenario completeness, resolver behavior against the live public npm registry, and CI wiring. `npm test` therefore requires network access to `https://registry.npmjs.org`; registry outages fail the integration tests instead of being hidden by simulated data.
 
 ## End-to-end scenario coverage
 

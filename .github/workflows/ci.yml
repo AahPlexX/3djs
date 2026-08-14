@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
-      - name: Contract and scenario tests
+      - name: Universal contract and live registry tests
         run: npm test
       - name: Plugin structure validation
         run: npm run verify

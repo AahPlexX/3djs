@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 
 const root = new URL('../', import.meta.url);
@@ -93,7 +92,7 @@ test('package resolver tracks the core ecosystem without hardcoded latest versio
   assert.doesNotMatch(resolver, /latest\s*:\s*["']\d/);
 });
 
-test('repository provides CI and deterministic offline verification', async () => {
+test('repository provides CI and offline structure verification', async () => {
   const packageJson = await readJson('package.json');
   assert.equal(packageJson.private, true);
   assert.ok(packageJson.scripts?.test);
@@ -115,44 +114,81 @@ test('all reference files are intentionally scoped and non-empty', async () => {
   }
 });
 
-test('package resolver resolves latest stable and peer metadata end to end', async () => {
-  const metadata = {
-    name: 'three',
-    'dist-tags': { latest: '2.0.0-beta.1', next: '2.0.0-beta.1' },
-    versions: {
-      '1.9.0': { name: 'three', version: '1.9.0', peerDependencies: { react: '^19.0.0' }, engines: { node: '>=20' } },
-      '1.10.0': { name: 'three', version: '1.10.0', peerDependencies: { react: '^19.0.0' }, engines: { node: '>=20' } },
-      '2.0.0-beta.1': { name: 'three', version: '2.0.0-beta.1' },
-    },
-  };
+const resolverPath = new URL('../skills/current-3d-engineering/scripts/resolve-packages.mjs', import.meta.url).pathname;
+const publicRegistry = 'https://registry.npmjs.org';
 
-  const server = createServer((req, res) => {
-    res.setHeader('content-type', 'application/json');
-    res.end(JSON.stringify(metadata));
-  });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const address = server.address();
-  const registry = `http://127.0.0.1:${address.port}`;
+async function runResolver(packageNames) {
+  const args = [resolverPath, '--registry', publicRegistry, '--json'];
+  for (const packageName of packageNames) args.push('--package', packageName);
 
-  const output = await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [
-      new URL('../skills/current-3d-engineering/scripts/resolve-packages.mjs', import.meta.url).pathname,
-      '--registry', registry,
-      '--package', 'three',
-      '--json',
-    ], { stdio: ['ignore', 'pipe', 'pipe'] });
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (chunk) => { stdout += chunk; });
     child.stderr.on('data', (chunk) => { stderr += chunk; });
     child.on('error', reject);
-    child.on('close', (code) => code === 0 ? resolve(stdout) : reject(new Error(stderr || `resolver exited ${code}`)));
-  }).finally(() => new Promise((resolve) => server.close(resolve)));
+    child.on('close', (code) => code === 0
+      ? resolve(JSON.parse(stdout))
+      : reject(new Error(stderr || stdout || `resolver exited ${code}`)));
+  });
+}
 
-  const parsed = JSON.parse(output);
-  assert.equal(parsed.packages[0].latestTag, '2.0.0-beta.1');
-  assert.equal(parsed.packages[0].latestStable, '1.10.0');
-  assert.equal(parsed.packages[0].recommendedVersion, '1.10.0');
-  assert.deepEqual(parsed.packages[0].peerDependencies, { react: '^19.0.0' });
-  assert.equal(parsed.packages[0].latestTagIsPrerelease, true);
+async function fetchPublishedLatest(packageName) {
+  const url = `${publicRegistry}/${encodeURIComponent(packageName)}/latest`;
+  let lastError;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: { accept: 'application/json' },
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const manifest = await response.json();
+      assert.equal(manifest.name, packageName);
+      assert.match(manifest.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/);
+      return manifest;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+    }
+  }
+
+  throw new Error(`${packageName}: public npm registry request failed after 3 attempts`, { cause: lastError });
+}
+
+test('tracked 3D packages resolve through the public npm registry', async () => {
+  const manifests = [];
+  for (const packageName of REQUIRED_PACKAGES) manifests.push(await fetchPublishedLatest(packageName));
+  assert.equal(manifests.length, REQUIRED_PACKAGES.length);
+});
+
+test('package resolver agrees with live npm manifests end to end', async () => {
+  const packageNames = ['three', '@react-three/fiber', 'cesium'];
+  const liveManifests = await Promise.all(packageNames.map(fetchPublishedLatest));
+  const report = await runResolver(packageNames);
+
+  assert.equal(report.registry, publicRegistry);
+  assert.deepEqual(report.failures, []);
+  assert.equal(report.packages.length, packageNames.length);
+
+  for (const [index, packageName] of packageNames.entries()) {
+    const resolved = report.packages.find((entry) => entry.name === packageName);
+    assert.ok(resolved, `resolver omitted ${packageName}`);
+    assert.equal(resolved.latestTag, liveManifests[index].version, `${packageName}: resolver disagrees with npm latest tag`);
+    assert.ok(resolved.latestStable, `${packageName}: no stable release was discovered`);
+    assert.match(resolved.latestStable, /^\d+\.\d+\.\d+(?:\+[0-9A-Za-z.-]+)?$/);
+    assert.match(resolved.recommendedVersion, /^\d+\.\d+\.\d+(?:\+[0-9A-Za-z.-]+)?$/);
+  }
+
+  const fiber = report.packages.find((entry) => entry.name === '@react-three/fiber');
+  assert.ok(Object.keys(fiber.peerDependencies).length > 0, 'R3F peer dependency metadata must come from the live selected release');
+});
+
+test('integration suite contains no loopback registry replacement', async () => {
+  const current = await readText('tests/plugin.test.mjs');
+  for (const marker of ['127.0.0' + '.1', 'local' + 'host', "from 'node:" + "http'", 'create' + 'Server(']) {
+    assert.ok(!current.includes(marker), `simulated endpoint marker remains: ${marker}`);
+  }
 });

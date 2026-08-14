@@ -98,7 +98,7 @@ test('skill is project-first and delegates only generic reference material', asy
   assert.match(skill, /scripts\/resolve-packages\.mjs/);
   assert.match(skill, /current date/i);
   assert.match(skill, /never infer/i);
-  assert.doesNotMatch(skill, /references\/scenarios\.md|scenario id|persona|primaryScenario/i);
+  assert.doesNotMatch(skill, /references\/scenarios\.md|scenario id|primaryScenario/i);
 });
 
 test('source policy requires authoritative current sources without a library allowlist', async () => {

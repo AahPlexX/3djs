@@ -1,0 +1,41 @@
+{
+  "name": "current-3d-engineering",
+  "version": "1.0.0",
+  "description": "Current-source JavaScript and TypeScript 3D engineering for ChatGPT and Codex.",
+  "author": {
+    "name": "AahPlexX",
+    "url": "https://github.com/AahPlexX"
+  },
+  "homepage": "https://github.com/AahPlexX/3djs",
+  "repository": "https://github.com/AahPlexX/3djs",
+  "license": "MIT",
+  "keywords": [
+    "3d",
+    "three.js",
+    "react-three-fiber",
+    "babylon.js",
+    "playcanvas",
+    "cesium",
+    "webgpu",
+    "webgl",
+    "webxr",
+    "gltf",
+    "rapier"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Current 3D Engineering",
+    "shortDescription": "Current-source 3D web engineering",
+    "longDescription": "Verifies current package, API, browser, and standards information before building, debugging, upgrading, or reviewing JavaScript and TypeScript 3D software.",
+    "developerName": "AahPlexX",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use Current 3D Engineering to build this 3D feature against current stable APIs.",
+      "Use Current 3D Engineering to diagnose this Three.js, R3F, Babylon.js, PlayCanvas, or Cesium issue.",
+      "Use Current 3D Engineering to verify and safely upgrade my 3D dependencies."
+    ]
+  }
+}

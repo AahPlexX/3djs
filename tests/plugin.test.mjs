@@ -114,7 +114,7 @@ test('source policy requires authoritative current sources without a library all
   assert.match(policy, /prerelease/i);
 });
 
-test('active plugin tree contains no encoded scenario or persona contracts', async () => {
+test('active plugin tree contains no encoded workflow or persona contracts', async () => {
   for (const obsoletePath of [
     'tests/scenarios.json',
     'tests/developer-journeys.json',
@@ -130,9 +130,10 @@ test('active plugin tree contains no encoded scenario or persona contracts', asy
   ];
   const prohibited = [/\bS\d{2}-[a-z0-9-]+\b/i, /primaryScenario/, /developer-journeys\.json/, /tests\/scenarios\.json/, /references\/scenarios\.md/];
   for (const file of files) {
+    if (file.pathname.endsWith('/tests/plugin.test.mjs')) continue;
     if (!/\.(?:md|mjs|json)$/.test(file.pathname)) continue;
     const text = await readFile(file, 'utf8');
-    for (const pattern of prohibited) assert.doesNotMatch(text, pattern, `${file.pathname} contains encoded scenario/persona contract`);
+    for (const pattern of prohibited) assert.doesNotMatch(text, pattern, `${file.pathname} contains encoded workflow/persona contract`);
   }
 });
 
@@ -171,11 +172,12 @@ test('project mode resolves every direct dependency section without filtering by
       optionalDependencies: {},
     };
     await writeFile(join(projectPath, 'package.json'), JSON.stringify({ name: 'resolver-property-test', private: true, ...specs }, null, 2));
-    const expected = Object.keys({ ...specs.dependencies, ...specs.devDependencies, ...specs.peerDependencies, ...specs.optionalDependencies });
+    const allSpecs = { ...specs.dependencies, ...specs.devDependencies, ...specs.peerDependencies, ...specs.optionalDependencies };
+    const expected = Object.keys(allSpecs);
     const report = await runResolver({ projectPath });
     assert.deepEqual(report.failures, []);
     assert.deepEqual(new Set(report.packages.map((entry) => entry.name)), new Set(expected));
-    for (const entry of report.packages) assert.equal(entry.installedSpec, { ...specs.dependencies, ...specs.devDependencies, ...specs.peerDependencies, ...specs.optionalDependencies }[entry.name]);
+    for (const entry of report.packages) assert.equal(entry.installedSpec, allSpecs[entry.name]);
   } finally {
     await rm(projectPath, { recursive: true, force: true });
   }
@@ -200,7 +202,7 @@ test('package resolver agrees with independent live npm manifests end to end', a
   }
 });
 
-test('structure validator is generic and does not require scenario counts', async () => {
+test('structure validator is generic and does not require workflow counts', async () => {
   const validator = await readText('skills/current-3d-engineering/scripts/validate-plugin.mjs');
   assert.match(validator, /project-routing\.md/);
   assert.match(validator, /engineering-invariants\.md/);

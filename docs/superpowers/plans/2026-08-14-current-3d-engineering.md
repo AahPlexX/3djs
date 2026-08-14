@@ -80,7 +80,7 @@
 
 ### Task 6: Real-endpoint integration enforcement — v1.0.1
 
-**Files:** `tests/plugin.test.mjs`, `skills/current-3d-engineering/references/source-policy.md`, `README.md`, `research/2026-08-14.md`, `.codex-plugin/plugin.json`, `package.json`
+**Files:** `tests/plugin.test.mjs`, `skills/current-3d-engineering/references/source-policy.md`, `README.md`, `research/2026-08-14.md`, `.codex-plugin/plugin.json`, `package.json`, `.github/workflows/ci.yml`
 
 **Interfaces:** Integration tests query the public npm registry directly and compare representative live manifests with the resolver's real output.
 
@@ -91,5 +91,6 @@
 - [x] Add bounded live-request timeouts/retries and explicit HTTP success checks.
 - [x] Require real authoritative endpoints for future integration claims in source policy.
 - [x] Verify locally that the repository contains no loopback/local registry replacement patterns and that `npm run verify` passes for v1.0.1.
-- [ ] Verify the complete v1.0.1 live integration suite in networked GitHub Actions.
-- [ ] Re-verify final `main` branch topology after the v1.0.1 implementation commit.
+- [x] Verify the complete v1.0.1 live integration suite in networked GitHub Actions: 12/12 tests pass, 0 failed, plus plugin structure validation.
+- [x] Update CI to current official stable `actions/checkout@v7.0.1` and `actions/setup-node@v7.0.0`, then verify the final workflow run succeeds without the prior deprecated action-runtime warning.
+- [x] Re-verify branch topology: `main` is the repository's only branch and remains authoritative.

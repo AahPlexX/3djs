@@ -4,7 +4,7 @@
 
 **Goal:** Build and verify an installable, current-source-first ChatGPT/Codex plugin for real-world JavaScript/TypeScript 3D engineering.
 
-**Architecture:** A skill-only OpenAI plugin keeps the workflow stable while using host research tools and a bundled npm registry resolver for volatile package facts. Heavy source/routing/scenario guidance lives in references, and deterministic Node tests validate packaging plus at least ten end-to-end developer workflows.
+**Architecture:** A skill-only OpenAI plugin keeps the workflow stable while using host research tools and a bundled npm registry resolver for volatile package facts. Heavy source/routing/scenario guidance lives in references, deterministic Node tests validate packaging and scenario contracts, and networked integration tests validate the resolver against the real public npm registry.
 
 **Tech Stack:** OpenAI plugin manifest + Agent Skill Markdown + Node.js built-ins + GitHub Actions.
 
@@ -16,6 +16,7 @@
 - No Reddit, Medium, Wikipedia, personal blogs, or unsourced snippets as default evidence.
 - Minimum ten end-to-end real-world scenarios; each must have objective completion checks.
 - Keep dependencies at zero unless an external package materially improves correctness/maintainability.
+- External integration claims must use the real authoritative endpoint; loopback servers and fabricated remote payloads are not accepted as integration evidence.
 
 ---
 
@@ -28,7 +29,7 @@
 - [x] Write failing structural tests for the empty repository.
 - [x] Run them and confirm failure occurs because required plugin files do not exist.
 - [x] Add only the manifest/marketplace/package metadata needed by the contract.
-- [x] Run the complete local test suite and confirm these assertions pass.
+- [x] Run the complete local baseline test suite and confirm these assertions pass.
 
 ### Task 2: Current-source skill and evidence policy
 
@@ -48,9 +49,9 @@
 
 **Interfaces:** CLI accepts repeated `--package`, `--project`, `--registry`, and `--json`; JSON output exposes `latestTag`, `latestStable`, `recommendedVersion`, peers and engines.
 
-- [x] Add a failing end-to-end test using a local mock registry whose `latest` tag is prerelease.
 - [x] Implement registry fetch, stable semantic-version selection, project spec inspection, and clear failures with Node built-ins only.
-- [x] Verify the mock-registry test chooses the highest stable version and returns peer metadata.
+- [x] Require `https://registry.npmjs.org` as the default authoritative public registry.
+- [x] Preserve custom `--registry` support for legitimate private or alternate npm registries.
 - [x] Smoke-test `--help` and structural validation.
 
 ### Task 4: Twelve real-world acceptance flows
@@ -64,7 +65,7 @@
 - [x] Mirror every scenario in the human workflow reference.
 - [x] Run scenario completeness tests locally.
 
-### Task 5: CI, documentation, and release verification
+### Task 5: CI, documentation, and initial release verification
 
 **Files:** `.github/workflows/ci.yml`, `README.md`, `LICENSE`, `skills/current-3d-engineering/scripts/validate-plugin.mjs`
 
@@ -73,8 +74,22 @@
 - [x] Add deterministic CI with Node 22 and read-only repository permissions.
 - [x] Document install, invocation, live version resolution, scenario coverage, and repository policy.
 - [x] Add independent structure validator and MIT license.
-- [x] Run `npm test` locally: 10/10 passing.
-- [x] Run `npm run verify` locally: plugin valid; 12 scenarios.
 - [x] Verify the complete remote tree on `main`.
 - [x] Verify branch topology keeps `main` authoritative/ahead.
-- [x] Verify the GitHub Actions run succeeds on the final implementation commit.
+- [x] Verify the initial GitHub Actions run succeeds.
+
+### Task 6: Real-endpoint integration enforcement — v1.0.1
+
+**Files:** `tests/plugin.test.mjs`, `skills/current-3d-engineering/references/source-policy.md`, `README.md`, `research/2026-08-14.md`, `.codex-plugin/plugin.json`, `package.json`
+
+**Interfaces:** Integration tests query the public npm registry directly and compare representative live manifests with the resolver's real output.
+
+- [x] Add a failing guard that detects loopback registry replacement infrastructure.
+- [x] Remove the local HTTP registry server and fabricated package metadata from the integration suite.
+- [x] Query the real `/latest` npm manifests for every tracked core 3D package.
+- [x] Compare live `three`, `@react-three/fiber`, and `cesium` manifests with the resolver's output without hardcoding current version numbers.
+- [x] Add bounded live-request timeouts/retries and explicit HTTP success checks.
+- [x] Require real authoritative endpoints for future integration claims in source policy.
+- [x] Verify locally that the repository contains no loopback/local registry replacement patterns and that `npm run verify` passes for v1.0.1.
+- [ ] Verify the complete v1.0.1 live integration suite in networked GitHub Actions.
+- [ ] Re-verify final `main` branch topology after the v1.0.1 implementation commit.

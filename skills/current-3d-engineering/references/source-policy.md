@@ -32,6 +32,10 @@ When sources conflict, stop the implementation decision and identify what each s
 
 Never average conflicting facts, guess a compatibility range, or invent a migration path.
 
+## Integration-validation rule
+
+When validating registry or remote API behavior, use the actual authoritative endpoint. Do not substitute loopback servers, fabricated registry payloads, or simulated HTTP responses for evidence that an external integration works. Keep pure algorithm tests separate from integration claims. If the real service is unreachable, report the network failure rather than converting the check into simulated success.
+
 ## Offline/failure behavior
 
 If the registry or official docs cannot be reached, continue only with facts that can be proven from local manifests, lockfiles, installed typings/source, tests, or cached version-specific documentation. State that current external verification was unavailable. Do not label any remembered or cached version as "latest".

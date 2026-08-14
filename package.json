@@ -1,6 +1,6 @@
 {
   "name": "current-3d-engineering-plugin",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "private": true,
   "description": "Validation and authoring utilities for the Current 3D Engineering ChatGPT/Codex plugin.",
   "type": "module",

@@ -75,6 +75,6 @@
 - [x] Add independent structure validator and MIT license.
 - [x] Run `npm test` locally: 10/10 passing.
 - [x] Run `npm run verify` locally: plugin valid; 12 scenarios.
-- [ ] Verify the complete remote tree on `main`.
-- [ ] Verify branch topology keeps `main` authoritative/ahead.
-- [ ] Verify the GitHub Actions run succeeds on the final commit.
+- [x] Verify the complete remote tree on `main`.
+- [x] Verify branch topology keeps `main` authoritative/ahead.
+- [x] Verify the GitHub Actions run succeeds on the final implementation commit.

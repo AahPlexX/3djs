@@ -1,0 +1,87 @@
+[
+  {
+    "id": "J01-junior-three-typescript",
+    "persona": "Junior frontend developer building their first production 3D product viewer",
+    "context": "Empty Vite + TypeScript project targeting desktop and mobile browsers, no existing 3D dependencies",
+    "request": "Add a responsive rotating GLB product viewer with orbit controls and ship a production build.",
+    "primaryScenario": "S01-three-vite-greenfield",
+    "requiredPackages": ["three", "@types/three"],
+    "stressors": ["greenfield dependency selection", "TypeScript declarations", "addon import paths", "responsive canvas", "teardown", "production build"],
+    "doneWhen": [
+      "current Three.js runtime and declaration requirements are verified rather than assumed",
+      "TypeScript typecheck succeeds",
+      "one render loop owns animation and controls update",
+      "canvas resizes from its container and handles representative mobile dimensions",
+      "production build loads model/addons without dev-only paths",
+      "renderer, controls, model resources, and listeners are disposed according to ownership"
+    ]
+  },
+  {
+    "id": "J02-senior-r3f-react19-ssr-upgrade",
+    "persona": "Senior React developer upgrading an existing customer-facing configurator",
+    "context": "React/ReactDOM 18 application using R3F 8 and Drei behind an SSR framework boundary; goal is React 19 without breaking routes",
+    "request": "Upgrade the 3D stack to the current compatible stable releases and preserve SSR, hydration, interactions, and route navigation.",
+    "primaryScenario": "S03-safe-3d-upgrade",
+    "requiredPackages": ["three", "@types/three", "@react-three/fiber", "@react-three/drei"],
+    "stressors": ["peer-coupled major upgrade", "React major compatibility", "SSR client boundary", "lockfile preservation", "route remount", "pointer interactions"],
+    "doneWhen": [
+      "React/Fiber major compatibility is proven from current upstream guidance and package metadata",
+      "Drei and Three.js/type requirements are checked before installation",
+      "3D initialization remains behind the framework's actual client boundary",
+      "typecheck, tests, and production server build succeed",
+      "hydration and client navigation complete without duplicate render loops or leaked resources",
+      "the dependency/lockfile diff contains only the coherent upgrade set"
+    ]
+  },
+  {
+    "id": "J03-pipeline-engineer-large-gltf",
+    "persona": "3D asset pipeline engineer reducing download and GPU cost for a large catalog model",
+    "context": "A 180 MB animated GLB is authored elsewhere and delivered to a Three.js storefront; source masters must remain recoverable",
+    "request": "Create a reproducible build-time optimization pipeline using glTF Transform while preserving visual and animation fidelity.",
+    "primaryScenario": "S04-gltf-production-pipeline",
+    "requiredPackages": ["@gltf-transform/core", "@gltf-transform/extensions", "@gltf-transform/functions", "@gltf-transform/cli"],
+    "stressors": ["build-time tooling", "glTF extensions", "Draco/Meshopt/KTX2 decision", "runtime decoder parity", "fidelity regression", "source preservation"],
+    "doneWhen": [
+      "the exact glTF Transform package set and transform-specific codec dependencies are verified",
+      "authoring masters remain unchanged and recoverable",
+      "every required output extension is supported by the storefront loader and configured decoder/transcoder path",
+      "optimized output validates and loads in the production runtime",
+      "file size and relevant runtime/VRAM measurements improve against a recorded baseline",
+      "visual appearance and animation behavior are regression-checked"
+    ]
+  },
+  {
+    "id": "J04-gis-cesium-subpath-deploy",
+    "persona": "GIS web developer deploying a Cesium operational map behind a corporate reverse proxy",
+    "context": "Vite application is served from /operations/map/ rather than domain root and streams Cesium ion plus local 3D Tiles",
+    "request": "Make the Cesium app work in production with workers, widgets, terrain, and local tiles from the real deployed subpath.",
+    "primaryScenario": "S09-cesium-geospatial",
+    "requiredPackages": ["cesium"],
+    "stressors": ["non-root deployment", "CESIUM_BASE_URL timing", "Workers/ThirdParty/Assets/Widgets", "widget CSS", "token scope", "local and remote content"],
+    "doneWhen": [
+      "current Cesium bundler requirements are verified from official documentation",
+      "CESIUM_BASE_URL matches the actual deployed subpath and is established before Cesium initialization/import where required",
+      "Workers, ThirdParty, Assets, Widgets, and widget CSS are available in the production output",
+      "ion content and local 3D Tiles load from the deployed origin without 404 or worker errors",
+      "viewer teardown is exercised on navigation/remount",
+      "token handling matches the intended client-service access model and scope"
+    ]
+  },
+  {
+    "id": "J05-xr-engineer-immersive-vr-typescript",
+    "persona": "XR developer adding optional headset mode to an existing TypeScript Three.js training app",
+    "context": "The normal desktop experience must remain usable; headset testing is available only on a dedicated QA device",
+    "request": "Add an immersive-vr entry flow that is standards-current, typed, user-initiated, and falls back cleanly when XR is unavailable.",
+    "primaryScenario": "S10-webxr-immersive",
+    "requiredPackages": ["three", "@types/three", "@types/webxr"],
+    "stressors": ["secure context", "TypeScript XR interfaces", "session support detection", "transient user activation", "required vs optional features", "physical hardware evidence"],
+    "doneWhen": [
+      "current W3C WebXR application flow is verified",
+      "the project's active TypeScript DOM typings are inspected and supplemental XR typings are added only if actually required",
+      "immersive session creation occurs from valid user activation after support detection",
+      "session failure/exit restores the non-XR experience without duplicate loops or leaked session resources",
+      "typecheck and non-XR browser tests pass",
+      "headset behavior is claimed verified only after execution on supported physical hardware"
+    ]
+  }
+]

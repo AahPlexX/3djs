@@ -146,3 +146,77 @@ test('npm helper still validates arbitrary registry packages against the real pu
   assert.equal(report.packages[0].registryName ?? report.packages[0].name, 'ogl');
   assert.match(report.packages[0].recommendedVersion, /^\d+\.\d+\.\d+/);
 });
+
+test('plugin manifest and local validator enforce current required interface metadata', async () => {
+  const manifest = await readJson('.codex-plugin/plugin.json');
+  const validator = await readText('skills/current-3d-engineering/scripts/validate-plugin.mjs');
+  for (const field of ['displayName', 'shortDescription', 'longDescription', 'developerName', 'category']) {
+    assert.equal(typeof manifest.interface?.[field], 'string', `interface.${field} must be a string`);
+    assert.ok(manifest.interface[field].trim(), `interface.${field} must be non-empty`);
+    assert.match(validator, new RegExp(field));
+  }
+  assert.ok(Array.isArray(manifest.interface?.defaultPrompt) && manifest.interface.defaultPrompt.length > 0);
+  assert.ok(Array.isArray(manifest.interface?.capabilities) && manifest.interface.capabilities.length > 0);
+  assert.match(validator, /defaultPrompt|default_prompt/);
+  assert.match(validator, /capabilities/);
+});
+
+test('bundled helper invocation is skill-root-relative and host-variable independent', async () => {
+  const skill = await readText('skills/current-3d-engineering/SKILL.md');
+  assert.doesNotMatch(skill, /\$\{PLUGIN_ROOT\}|\$PLUGIN_ROOT/);
+  assert.match(skill, /node\s+["']?scripts\/resolve-npm-packages\.mjs["']?/);
+});
+
+test('universal routing preserves developer work and does not assume a complete working copy', async () => {
+  const routing = await readText('skills/current-3d-engineering/references/project-routing.md');
+  const invariants = await readText('skills/current-3d-engineering/references/engineering-invariants.md');
+  const combined = `${routing}\n${invariants}`;
+  assert.match(combined, /uncommitted|unsaved|developer changes|working[- ]tree|working copy/i);
+  assert.match(combined, /preserve|do not.*overwrite|do not.*reset|do not.*clean/i);
+  assert.match(combined, /partial|sparse|materializ|submodule|large file|pointer/i);
+  assert.match(combined, /missing|absence/i);
+});
+
+test('universal execution policy treats project commands as executable code with material side effects', async () => {
+  const policy = await readText('skills/current-3d-engineering/references/source-policy.md');
+  const invariants = await readText('skills/current-3d-engineering/references/engineering-invariants.md');
+  const combined = `${policy}\n${invariants}`;
+  assert.match(combined, /untrusted|trust boundary|executable code|inspect.*script|inspect.*command/i);
+  assert.match(combined, /side effect|filesystem|network|credential|install hook|postinstall/i);
+  assert.match(combined, /secret|credential/i);
+});
+
+test('3D data and content migrations preserve serialized semantic compatibility when applicable', async () => {
+  const invariants = await readText('skills/current-3d-engineering/references/engineering-invariants.md');
+  assert.match(invariants, /serializ|schema|migration/i);
+  assert.match(invariants, /unit|scale/i);
+  assert.match(invariants, /handedness|coordinate|up[- ]axis|axis convention/i);
+  assert.match(invariants, /color space|colour space|transfer function/i);
+  assert.match(invariants, /backup|reversible|round[- ]trip|lossy|destructive/i);
+});
+
+test('npm metadata exposes a registry candidate rather than a compatibility recommendation', async () => {
+  const helper = await readFile(newResolver, 'utf8');
+  const readme = await readText('README.md');
+  assert.match(helper, /registryCandidateVersion/);
+  assert.doesNotMatch(helper, /recommendedVersion/);
+  assert.match(readme, /registry candidate/i);
+  assert.match(readme, /not.*compatibility recommendation|does not.*recommend.*compatib|candidate.*not.*compatib/i);
+});
+
+test('npm helper documentation does not pretend to implement full private or scoped npm configuration', async () => {
+  const readme = await readText('README.md');
+  const skill = await readText('skills/current-3d-engineering/SKILL.md');
+  const combined = `${readme}\n${skill}`;
+  assert.match(combined, /\.npmrc/i);
+  assert.match(combined, /scoped registry|scope.*registry/i);
+  assert.match(combined, /auth|token|certificate|proxy/i);
+  assert.match(combined, /does not|not.*implement|use.*npm.*config|project.*npm.*tool/i);
+});
+
+test('installation instructions separate marketplace registration from plugin installation', async () => {
+  const readme = await readText('README.md');
+  assert.match(readme, /codex plugin marketplace add/);
+  assert.match(readme, /codex plugin add current-3d-engineering@aahplexx-3djs/);
+  assert.match(readme, /codex plugin list/);
+});

@@ -144,7 +144,8 @@ test('npm helper still validates arbitrary registry packages against the real pu
   assert.deepEqual(report.failures, []);
   assert.equal(report.packages.length, 1);
   assert.equal(report.packages[0].registryName ?? report.packages[0].name, 'ogl');
-  assert.match(report.packages[0].recommendedVersion, /^\d+\.\d+\.\d+/);
+  assert.match(report.packages[0].registryCandidateVersion, /^\d+\.\d+\.\d+/);
+  assert.equal('recommendedVersion' in report.packages[0], false);
 });
 
 test('plugin manifest and local validator enforce current required interface metadata', async () => {

@@ -2,6 +2,22 @@
 
 These are reusable correctness checks, not a workflow catalog. Apply an invariant only when the actual project owns or exposes that concern.
 
+## Developer-state preservation invariants
+
+- Inspect the available current working state before mutation when the project/environment exposes one.
+- Treat uncommitted, staged, unsaved/editor-managed, locally generated, or partially migrated developer changes as project truth unless the user explicitly authorizes discarding them.
+- Do not reset, clean, force-checkout, revert, regenerate over, or overwrite unrelated developer changes merely to obtain a clean baseline.
+- Keep edits scoped to the requested path and preserve unrelated local configuration and work.
+- If a destructive change is required without a reliable version-control recovery path, use a recoverable/atomic strategy or preserve a backup appropriate to the project before mutation.
+
+## Working-copy materialization invariants
+
+- Establish whether the visible working copy is complete enough for the requested conclusion before treating missing files, assets, dependencies, generated outputs, or binaries as project absence.
+- Inspect project-relevant evidence for partial/sparse checkout, uninitialized external components or submodules, large-file pointer objects, external asset stores, dependency restore, generated source, editor/engine import, vendor sync, remote artifacts, or another discovered materialization mechanism.
+- Do not make any one materialization technology mandatory; use only the mechanism proven by the project.
+- Do not automatically fetch, initialize, restore, import, or generate content when doing so can require credentials, large downloads, license acceptance, destructive regeneration, or external side effects.
+- If the project cannot be materialized in the current environment, state that limitation and do not convert incomplete evidence into a definitive claim.
+
 ## Dependency provenance and compatibility invariants
 
 - Identify the exact dependency/component involved in the requested change and how the project obtains it before researching versions.
@@ -25,6 +41,16 @@ These are reusable correctness checks, not a workflow catalog. Apply an invarian
 - Respect engine/editor serialization and import pipelines; do not text-edit managed state when the owning tool can overwrite or invalidate the change.
 - Identify how checked-in generated/binary artifacts are reproduced before replacing them.
 
+## Execution-trust and side-effect invariants
+
+- Treat repository build scripts, installers, package lifecycle hooks, generators, editor automation, deployment scripts, native binaries, and remote bootstrap commands as executable code.
+- For unfamiliar or untrusted project commands, inspect the command/script before execution when it can have material side effects.
+- Identify filesystem writes/deletions, generated output, dependency/install/postinstall hooks, network access, external services, credentials/secrets, migrations, signing, publishing/deployment, global installation, and other state changes when relevant.
+- Prefer the least-privileged established command that can prove the required claim.
+- Never expose secrets or credentials to untrusted executable code merely to complete a verification step.
+- Do not blindly execute downloaded/remote shell code or assume a command is safe because it appears in a repository task/script.
+- Distinguish local/read-only validation from commands that mutate remote or external state; require the appropriate authorization boundary for the latter.
+
 ## Shader and GPU-build invariants
 
 - Establish who owns shader source, preprocessing, cross-compilation, offline compilation, runtime compilation, reflection, pipeline-cache/binary-archive generation, and generated bindings when these stages exist.
@@ -46,11 +72,13 @@ These are reusable correctness checks, not a workflow catalog. Apply an invarian
 - Release owned listeners, render resources, textures, buffers, materials, geometries, workers/threads, WASM/native state, sessions, timers, observers, device/context resources, file/native handles, and other resources on teardown when the underlying runtime does not own disposal automatically.
 - Do not dispose shared/cached resources while other consumers still own them.
 
-## Time and simulation invariants
+## Time, simulation, determinism, and numeric invariants
 
 - Base animation/simulation on measured elapsed/delta time or an intentionally chosen fixed-step strategy rather than assumed frame rate.
 - Keep one explicit source of truth for transform/state synchronization when multiple systems interact.
 - Verify pause, resume, background/foreground, remount/reload, navigation/scene changes, and lifecycle suspension behavior when those states exist.
+- When deterministic replay, networking, lockstep simulation, reproducible baking, or tests require determinism, establish random seeds, ordering, timestep, floating-point/precision, and cross-platform assumptions explicitly.
+- For very large/small coordinate ranges or long-running simulations, verify precision/origin strategy when numeric precision can materially affect behavior.
 
 ## Rendering and presentation invariants
 
@@ -73,6 +101,15 @@ These are reusable correctness checks, not a workflow catalog. Apply an invarian
 - Validate output assets after transformation and regression-check visual, animation, metadata, coordinate/unit, material, skeleton, collision, and interaction fidelity relevant to the product.
 - Verify production/package/deployment locations, resource lookup paths, MIME/content types when applicable, runtime search paths, bundle/package layout, plugin/native-library locations, caches, and target-specific packaging rather than relying only on development/editor success.
 
+## Persisted 3D data and migration invariants
+
+- Identify persisted or serialized state that can outlive the changed code: scenes, prefabs/templates, saves, editor/project state, caches, asset databases, baked data, network snapshots, binary resources, custom formats, or other product-defined data.
+- Establish the schema/format version owner, reader/writer versions, migration direction, backward/forward compatibility expectations, and whether old/new runtimes must interoperate before changing serialized output.
+- Preserve semantic conventions the product depends on. When relevant, verify units and scale, coordinate system, handedness, up/forward axis conventions, transform order, color space/transfer function, texture/material semantics, animation time/rate, skeleton/bone conventions, collision/physics metadata, custom extensions, IDs/references, and application metadata.
+- Do not assume a file that parses is semantically compatible.
+- Before lossy or destructive migration, preserve a recoverable original or ensure a reproducible source pipeline exists.
+- Verify migrated content with the consuming runtime/tool and, when required, round-trip, rollback, representative old/new reader, visual-fidelity, animation, material/color, collision, metadata, and interaction checks.
+
 ## Language and type-system invariants
 
 - Inspect the actual language/compiler/interpreter version, language mode/edition/standard, module/package system, generated bindings, type/declaration/header/interface strategy, and foreign-function boundary when relevant.
@@ -89,7 +126,7 @@ These are reusable correctness checks, not a workflow catalog. Apply an invarian
 
 ## Failure-handling invariants
 
-- Handle asset, device/context, shader/compiler, worker/thread, native library/plugin, decoder/importer, session, network/service, dependency-resolution, and initialization failures at the layer that owns them.
+- Handle asset, device/context, shader/compiler, worker/thread, native library/plugin, decoder/importer, session, network/service, dependency-resolution, migration, and initialization failures at the layer that owns them.
 - Preserve meaningful loading/error/fallback states required by the product.
 - Reproduce the original failure before claiming a bug fix when reproduction is possible.
 
@@ -102,8 +139,9 @@ These are reusable correctness checks, not a workflow catalog. Apply an invarian
 
 ## Verification invariants
 
-- Run the project's actual applicable tests, compiler/type checks, static analysis, build/link steps, shader compilation, engine/editor validation, packaging/signing, production/release builds, deployment checks, and runtime smoke tests when they exist.
+- After execution-trust review, run the project's actual applicable tests, compiler/type checks, static analysis, build/link steps, shader compilation, engine/editor validation, packaging/signing, production/release builds, deployment checks, and runtime smoke tests when they exist.
 - Exercise the changed path in the target environment that matters to the request.
-- Inspect runtime/editor/console/device logs, production asset/binary behavior, teardown/re-entry, fallback/error paths, and packaging/deployment output when applicable.
+- Inspect runtime/editor/console/device logs, production asset/binary behavior, teardown/re-entry, fallback/error paths, migration results, and packaging/deployment output when applicable.
 - Verify each affected workspace/subproject/target boundary in a polyglot or multi-root repository rather than assuming one root command proves all affected components.
+- Confirm developer-authored unrelated state remains preserved after verification commands that can mutate/generated files.
 - State environment limitations explicitly. Evidence from a different language toolchain, OS, architecture, browser, device, GPU/driver, SDK, engine/editor, deployment, or service cannot be presented as proof for an untested target.

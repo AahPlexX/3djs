@@ -1,14 +1,14 @@
 {
   "name": "current-3d-engineering-plugin",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Validation and authoring utilities for the Current 3D Engineering ChatGPT/Codex plugin.",
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "verify": "node skills/current-3d-engineering/scripts/validate-plugin.mjs",
-    "versions": "node skills/current-3d-engineering/scripts/resolve-packages.mjs",
-    "versions:project": "node skills/current-3d-engineering/scripts/resolve-packages.mjs --project . --json"
+    "npm:versions": "node skills/current-3d-engineering/scripts/resolve-npm-packages.mjs",
+    "npm:versions:project": "node skills/current-3d-engineering/scripts/resolve-npm-packages.mjs --project . --json"
   },
   "engines": {
     "node": ">=20"

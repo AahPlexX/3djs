@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 function usage() {
-  return `Current 3D npm metadata helper\n\nUsage:\n  node resolve-npm-packages.mjs --project <path> [options]\n  node resolve-npm-packages.mjs --package <name> [--package <name> ...] [options]\n\nScope:\n  Optional helper for npm-compatible package metadata only.\n  It is not a universal project detector and is not required for non-npm projects.\n\nInput:\n  --package <name>   Resolve any npm registry package name; repeat for more packages\n  --project <path>   Read direct dependency specs from <path>/package.json\n                     Registry-backed specs are queried; non-registry specs are preserved separately\n\nOptions:\n  --registry <url>   npm-compatible registry base URL (default: https://registry.npmjs.org)\n  --json             Emit JSON (default output is a readable table)\n  --help             Show this help\n\nThere is no built-in package allowlist or implicit project-ecosystem selection.\n`;
+  return `Current 3D npm metadata helper\n\nUsage:\n  node resolve-npm-packages.mjs --project <path> [options]\n  node resolve-npm-packages.mjs --package <name> [--package <name> ...] [options]\n\nScope:\n  Optional helper for simple npm-compatible registry metadata only.\n  It is not a universal project detector and is not required for non-npm projects.\n  A registry candidate is metadata evidence, not a project compatibility recommendation.\n\nInput:\n  --package <name>   Resolve any npm registry package name; repeat for more packages\n  --project <path>   Read direct dependency specs from <path>/package.json\n                     Registry-backed specs are queried; non-registry specs are preserved separately\n\nOptions:\n  --registry <url>   Simple npm-compatible registry endpoint (default: https://registry.npmjs.org)\n  --json             Emit JSON (default output is a readable table)\n  --help             Show this help\n\nThis helper does not implement full .npmrc scoped-registry, authentication, proxy, or certificate semantics.\nThere is no built-in package allowlist or implicit project-ecosystem selection.\n`;
 }
 
 function parseArgs(argv) {
@@ -132,8 +132,8 @@ function summarize(metadata, dependency) {
   const latestTag = metadata['dist-tags']?.latest ?? null;
   const latestStable = highestStable(metadata.versions);
   const latestTagIsPrerelease = latestTag ? !parseStable(latestTag) : null;
-  const recommendedVersion = latestTag && !latestTagIsPrerelease ? latestTag : latestStable;
-  const versionMetadata = recommendedVersion ? metadata.versions?.[recommendedVersion] : null;
+  const registryCandidateVersion = latestTag && !latestTagIsPrerelease ? latestTag : latestStable;
+  const versionMetadata = registryCandidateVersion ? metadata.versions?.[registryCandidateVersion] : null;
 
   return {
     name: metadata.name,
@@ -144,7 +144,7 @@ function summarize(metadata, dependency) {
     latestTag,
     latestTagIsPrerelease,
     latestStable,
-    recommendedVersion,
+    registryCandidateVersion,
     deprecated: versionMetadata?.deprecated ?? null,
     peerDependencies: versionMetadata?.peerDependencies ?? {},
     engines: versionMetadata?.engines ?? {},
@@ -158,9 +158,9 @@ function printTable(report) {
   console.log(`Registry: ${report.registry}`);
   if (report.projectPackageJson) console.log(`Project: ${report.projectPackageJson}`);
   console.log('');
-  console.log('Declared\tRegistry package\tProject spec\tlatest tag\tstable\trecommended');
+  console.log('Declared\tRegistry package\tProject spec\tlatest tag\tstable\tregistry candidate');
   for (const pkg of report.packages) {
-    console.log(`${pkg.declaredName}\t${pkg.registryName}\t${pkg.installedSpec ?? '-'}\t${pkg.latestTag ?? '-'}\t${pkg.latestStable ?? '-'}\t${pkg.recommendedVersion ?? '-'}`);
+    console.log(`${pkg.declaredName}\t${pkg.registryName}\t${pkg.installedSpec ?? '-'}\t${pkg.latestTag ?? '-'}\t${pkg.latestStable ?? '-'}\t${pkg.registryCandidateVersion ?? '-'}`);
   }
   if (report.nonRegistryDependencies.length) {
     console.log('\nNon-registry dependency specs:');

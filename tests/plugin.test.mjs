@@ -73,6 +73,7 @@ test('plugin manifest is a skill-only Codex plugin with stable metadata', async 
   assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
   assert.equal(manifest.skills, './skills/');
   assert.equal(manifest.repository, 'https://github.com/AahPlexX/3djs');
+  assert.ok(manifest.interface?.category);
   assert.ok(!('mcpServers' in manifest), 'MCP must not be declared unless one is actually implemented');
 });
 
@@ -201,7 +202,8 @@ test('npm helper agrees with independent live npm manifests end to end', async (
     assert.equal(resolved.latestTag, liveManifests[index].version, `${packageName}: resolver disagrees with npm latest tag`);
     assert.ok(resolved.latestStable, `${packageName}: no stable release was discovered`);
     assert.match(resolved.latestStable, /^\d+\.\d+\.\d+(?:\+[0-9A-Za-z.-]+)?$/);
-    assert.match(resolved.recommendedVersion, /^\d+\.\d+\.\d+(?:\+[0-9A-Za-z.-]+)?$/);
+    assert.match(resolved.registryCandidateVersion, /^\d+\.\d+\.\d+(?:\+[0-9A-Za-z.-]+)?$/);
+    assert.equal('recommendedVersion' in resolved, false);
   }
 });
 
@@ -211,6 +213,7 @@ test('structure validator is generic, provenance-first, and requires the scoped 
   assert.match(validator, /engineering-invariants\.md/);
   assert.match(validator, /resolve-npm-packages\.mjs/);
   assert.match(validator, /provenance/i);
+  assert.match(validator, /category/);
   assert.doesNotMatch(validator, /scenarios\.json|scenarios\.md|scenario count|scenarios=/i);
 });
 

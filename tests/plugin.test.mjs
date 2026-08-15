@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process';
 const root = new URL('../', import.meta.url);
 const readText = (path) => readFile(new URL(path, root), 'utf8');
 const readJson = async (path) => JSON.parse(await readText(path));
-const resolverPath = new URL('../skills/current-3d-engineering/scripts/resolve-packages.mjs', import.meta.url).pathname;
+const resolverPath = new URL('../skills/current-3d-engineering/scripts/resolve-npm-packages.mjs', import.meta.url).pathname;
 const publicRegistry = 'https://registry.npmjs.org';
 
 async function runResolverRaw(args = []) {
@@ -89,39 +89,41 @@ test('repo marketplace exposes the root plugin for ChatGPT/Codex installation', 
   assert.ok(entry.category);
 });
 
-test('skill is project-first and delegates only generic reference material', async () => {
+test('skill is project-first and delegates generic references plus an optional npm helper', async () => {
   const skill = await readText('skills/current-3d-engineering/SKILL.md');
   assert.match(skill, /^---\nname: current-3d-engineering\ndescription: Use when /);
   assert.match(skill, /references\/source-policy\.md/);
   assert.match(skill, /references\/project-routing\.md/);
   assert.match(skill, /references\/engineering-invariants\.md/);
-  assert.match(skill, /scripts\/resolve-packages\.mjs/);
+  assert.match(skill, /scripts\/resolve-npm-packages\.mjs/);
+  assert.match(skill, /optional/i);
+  assert.match(skill, /provenance/i);
   assert.match(skill, /current date/i);
   assert.match(skill, /never infer/i);
   assert.doesNotMatch(skill, /references\/scenarios\.md|scenario id|primaryScenario/i);
 });
 
-test('source policy requires authoritative current sources without a library allowlist', async () => {
+test('source policy requires authoritative provenance-first evidence and bans weak defaults', async () => {
   const policy = (await readText('skills/current-3d-engineering/references/source-policy.md')).toLowerCase();
-  for (const expected of ['registry.npmjs.org', 'developer.mozilla.org', 'w3.org', 'khronos.org']) {
-    assert.ok(policy.includes(expected), `missing authoritative source: ${expected}`);
+  for (const expected of ['provenance', 'registry', 'version-control', 'sdk', 'upstream', 'conflict']) {
+    assert.ok(policy.includes(expected), `missing evidence rule: ${expected}`);
   }
   for (const prohibited of ['reddit.com', 'medium.com', 'wikipedia.org']) {
     assert.ok(policy.includes(prohibited), `missing prohibited-source rule: ${prohibited}`);
   }
-  assert.match(policy, /maintainer|upstream/);
-  assert.match(policy, /conflict/i);
-  assert.match(policy, /prerelease/i);
+  assert.match(policy, /semantic versioning|semantic-version/i);
+  assert.match(policy, /not.*universal|not globally mandatory/i);
 });
 
-test('active plugin tree contains no encoded workflow or persona contracts', async () => {
+test('active plugin tree contains no encoded workflow, persona, or legacy universal-resolver contracts', async () => {
   for (const obsoletePath of [
     'tests/scenarios.json',
     'tests/developer-journeys.json',
     'skills/current-3d-engineering/references/scenarios.md',
     'skills/current-3d-engineering/references/library-routing.md',
+    'skills/current-3d-engineering/scripts/resolve-packages.mjs',
   ]) {
-    await assert.rejects(access(new URL(obsoletePath, root)), `obsolete encoded contract still exists: ${obsoletePath}`);
+    await assert.rejects(access(new URL(obsoletePath, root)), `obsolete encoded/ambiguous contract still exists: ${obsoletePath}`);
   }
 
   const files = [
@@ -137,36 +139,36 @@ test('active plugin tree contains no encoded workflow or persona contracts', asy
   }
 });
 
-test('package resolver has no recognized-package allowlist', async () => {
-  const resolver = await readText('skills/current-3d-engineering/scripts/resolve-packages.mjs');
+test('npm helper has no recognized-package allowlist', async () => {
+  const resolver = await readText('skills/current-3d-engineering/scripts/resolve-npm-packages.mjs');
   assert.doesNotMatch(resolver, /DEFAULT_PACKAGES|REQUIRED_PACKAGES|SUPPORTED_PACKAGES/);
   for (const previouslyCuratedName of ['@react-three/fiber', '@babylonjs/core', 'playcanvas', 'cesium', '@gltf-transform/core']) {
     assert.ok(!resolver.includes(`'${previouslyCuratedName}'`) && !resolver.includes(`"${previouslyCuratedName}"`), `resolver hardcodes ${previouslyCuratedName}`);
   }
   assert.match(resolver, /registry\.npmjs\.org/);
   assert.match(resolver, /dist-tags/);
-  assert.match(resolver, /Object\.keys\(project\.specs\)/);
+  assert.match(resolver, /classifyProjectDependency/);
   assert.doesNotMatch(resolver, /latest\s*:\s*["']\d/);
 });
 
-test('resolver requires actual project/package input instead of silently choosing an ecosystem', async () => {
+test('npm helper requires actual npm package/project input instead of silently choosing an ecosystem', async () => {
   const result = await runResolverRaw(['--json']);
   assert.notEqual(result.code, 0);
   assert.match(`${result.stderr}\n${result.stdout}`, /--package|--project/i);
 });
 
-test('explicit arbitrary package names resolve through the public npm registry', async () => {
+test('explicit arbitrary npm package names resolve through the public npm registry', async () => {
   const packageNames = ['ogl', 'typescript'];
   const report = await runResolver({ packageNames });
   assert.deepEqual(report.failures, []);
-  assert.deepEqual(new Set(report.packages.map((entry) => entry.name)), new Set(packageNames));
+  assert.deepEqual(new Set(report.packages.map((entry) => entry.registryName)), new Set(packageNames));
 });
 
-test('project mode resolves every direct dependency section without filtering by known libraries', async () => {
+test('npm project mode resolves every registry-backed direct dependency section without a package allowlist', async () => {
   const projectPath = await mkdtemp(join(tmpdir(), 'current-3d-project-'));
   try {
     const specs = {
-      dependencies: { three: '^0.1.0', ogl: '^1.0.0' },
+      dependencies: { ogl: '^1.0.0' },
       devDependencies: { typescript: '^5.0.0' },
       peerDependencies: { '@types/webxr': '^0.5.0' },
       optionalDependencies: {},
@@ -176,14 +178,15 @@ test('project mode resolves every direct dependency section without filtering by
     const expected = Object.keys(allSpecs);
     const report = await runResolver({ projectPath });
     assert.deepEqual(report.failures, []);
-    assert.deepEqual(new Set(report.packages.map((entry) => entry.name)), new Set(expected));
-    for (const entry of report.packages) assert.equal(entry.installedSpec, allSpecs[entry.name]);
+    assert.deepEqual(report.nonRegistryDependencies, []);
+    assert.deepEqual(new Set(report.packages.map((entry) => entry.declaredName)), new Set(expected));
+    for (const entry of report.packages) assert.equal(entry.installedSpec, allSpecs[entry.declaredName]);
   } finally {
     await rm(projectPath, { recursive: true, force: true });
   }
 });
 
-test('package resolver agrees with independent live npm manifests end to end', async () => {
+test('npm helper agrees with independent live npm manifests end to end', async () => {
   const packageNames = ['ogl', 'typescript'];
   const liveManifests = await Promise.all(packageNames.map(fetchPublishedLatest));
   const report = await runResolver({ packageNames });
@@ -193,7 +196,7 @@ test('package resolver agrees with independent live npm manifests end to end', a
   assert.equal(report.packages.length, packageNames.length);
 
   for (const [index, packageName] of packageNames.entries()) {
-    const resolved = report.packages.find((entry) => entry.name === packageName);
+    const resolved = report.packages.find((entry) => entry.registryName === packageName);
     assert.ok(resolved, `resolver omitted ${packageName}`);
     assert.equal(resolved.latestTag, liveManifests[index].version, `${packageName}: resolver disagrees with npm latest tag`);
     assert.ok(resolved.latestStable, `${packageName}: no stable release was discovered`);
@@ -202,10 +205,12 @@ test('package resolver agrees with independent live npm manifests end to end', a
   }
 });
 
-test('structure validator is generic and does not require workflow counts', async () => {
+test('structure validator is generic, provenance-first, and requires the scoped npm helper', async () => {
   const validator = await readText('skills/current-3d-engineering/scripts/validate-plugin.mjs');
   assert.match(validator, /project-routing\.md/);
   assert.match(validator, /engineering-invariants\.md/);
+  assert.match(validator, /resolve-npm-packages\.mjs/);
+  assert.match(validator, /provenance/i);
   assert.doesNotMatch(validator, /scenarios\.json|scenarios\.md|scenario count|scenarios=/i);
 });
 
@@ -232,8 +237,10 @@ test('all active reference files are intentionally scoped and non-empty', async 
 });
 
 test('integration suite contains no loopback registry replacement', async () => {
-  const current = await readText('tests/plugin.test.mjs');
-  for (const marker of ['127.0.0' + '.1', 'local' + 'host', "from 'node:" + "http'", 'create' + 'Server(']) {
-    assert.ok(!current.includes(marker), `simulated endpoint marker remains: ${marker}`);
+  const files = [await readText('tests/plugin.test.mjs'), await readText('tests/universality.test.mjs')];
+  for (const current of files) {
+    for (const marker of ['127.0.0' + '.1', 'local' + 'host', "from 'node:" + "http'", 'create' + 'Server(']) {
+      assert.ok(!current.includes(marker), `simulated endpoint marker remains: ${marker}`);
+    }
   }
 });

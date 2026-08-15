@@ -1,7 +1,7 @@
 {
   "name": "current-3d-engineering",
-  "version": "1.1.0",
-  "description": "Current-source JavaScript and TypeScript 3D engineering for ChatGPT and Codex.",
+  "version": "1.2.0",
+  "description": "Current-source 3D and graphics engineering for ChatGPT and Codex across arbitrary project languages, runtimes, engines, toolchains, and target platforms.",
   "author": {
     "name": "AahPlexX",
     "url": "https://github.com/AahPlexX"
@@ -12,27 +12,30 @@
   "keywords": [
     "3d",
     "graphics",
+    "rendering",
+    "gpu",
+    "shaders",
+    "engines",
+    "native",
     "webgpu",
     "webgl",
     "webxr",
-    "gltf",
-    "typescript",
-    "javascript"
+    "gltf"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Current 3D Engineering",
-    "shortDescription": "Current-source 3D web engineering",
-    "longDescription": "Inspects the actual project, verifies current package/API/browser/standards information, and implements or reviews JavaScript and TypeScript 3D software without relying on predefined project scenarios or supported-library lists.",
+    "shortDescription": "Current-source 3D and graphics engineering",
+    "longDescription": "Inspects the actual project, discovers dependency provenance and toolchain/runtime ownership, verifies current authoritative API and compatibility information, and implements or reviews 3D/graphics software without predefined language, engine, package-manager, or project-type support lists.",
     "developerName": "AahPlexX",
     "capabilities": [
       "Read",
       "Write"
     ],
     "defaultPrompt": [
-      "Use Current 3D Engineering to implement this 3D feature against the architecture and dependencies already in my project.",
-      "Use Current 3D Engineering to diagnose this graphics issue using current authoritative sources.",
-      "Use Current 3D Engineering to verify and safely upgrade the dependencies involved in this 3D work."
+      "Use Current 3D Engineering to implement this 3D feature against the architecture, toolchain, and dependencies already in my project.",
+      "Use Current 3D Engineering to diagnose this graphics issue using current authoritative sources appropriate to my project.",
+      "Use Current 3D Engineering to verify and safely change the dependencies, SDKs, toolchains, or runtime components involved in this 3D work."
     ]
   }
 }

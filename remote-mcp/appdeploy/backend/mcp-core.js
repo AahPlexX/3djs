@@ -215,10 +215,11 @@ function methodResult(body, modern) {
   if (method === 'tools/list') return jsonResponse(id, { tools: TOOLS }, modern, modern);
 
   if (method === 'tools/call') {
-    if (!params || typeof params.name !== 'string' || !params.arguments || typeof params.arguments !== 'object' || Array.isArray(params.arguments)) {
+    const args = params.arguments ?? {};
+    if (!params || typeof params.name !== 'string' || typeof args !== 'object' || Array.isArray(args)) {
       return errorResponse(id, -32602, 'Invalid tool call parameters.', 400);
     }
-    const result = toolResultFor(params.name, params.arguments);
+    const result = toolResultFor(params.name, args);
     if (!result) return errorResponse(id, -32602, 'Unknown tool or invalid tool arguments.', 400);
     return jsonResponse(id, result, modern, false);
   }

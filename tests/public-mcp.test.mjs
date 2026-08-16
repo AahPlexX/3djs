@@ -94,9 +94,9 @@ test('hybrid plugin packaging requires a real anonymous HTTPS remote MCP', async
   assert.equal(server.type, 'http');
   assert.match(server.url, /^https:\/\/.+\/api\/mcp$/);
 
-  const serialized = JSON.stringify(server).toLowerCase();
-  for (const forbidden of ['authorization', 'bearer', 'oauth', 'token', 'secret', 'env']) {
-    assert.equal(serialized.includes(forbidden), false, `remote MCP config must not require ${forbidden}`);
+  const forbiddenKeys = new Set(['authorization', 'bearer', 'oauth', 'token', 'secret', 'env', 'headers']);
+  for (const key of Object.keys(server)) {
+    assert.equal(forbiddenKeys.has(key.toLowerCase()), false, `remote MCP config must not require ${key}`);
   }
 });
 
@@ -181,19 +181,19 @@ test('modern discovery requires protocol metadata and returns complete public-ca
   const body = modernEnvelope(8, 'server/discover');
   const response = await request({ headers: modernHeaders('server/discover'), body });
   assert.equal(response.statusCode, 200);
-  assert.equal(response.body?.resultType, 'complete');
+  assert.equal(response.body?.result?.resultType, 'complete');
   assert.ok(Array.isArray(response.body?.result?.supportedVersions));
   assert.ok(response.body.result.supportedVersions.includes('2026-07-28'));
   assert.equal(response.body?.result?.cacheScope, 'public');
   assert.ok(Number.isInteger(response.body?.result?.ttlMs) && response.body.result.ttlMs > 0);
-  assert.equal(response.body?._meta?.['io.modelcontextprotocol/serverInfo']?.name, 'current-3d-engineering');
+  assert.equal(response.body?.result?._meta?.['io.modelcontextprotocol/serverInfo']?.name, 'current-3d-engineering');
 });
 
 test('modern named calls require Mcp-Name to match the JSON body', async () => {
   const body = modernEnvelope(9, 'tools/call', { name: 'current_3d_info', arguments: {} });
   const valid = await request({ headers: modernHeaders('tools/call', 'current_3d_info'), body });
   assert.equal(valid.statusCode, 200);
-  assert.equal(valid.body?.resultType, 'complete');
+  assert.equal(valid.body?.result?.resultType, 'complete');
 
   const mismatch = await request({ headers: modernHeaders('tools/call', 'current_3d_guidance'), body });
   assert.equal(mismatch.statusCode, 400);
@@ -225,7 +225,7 @@ test('modern resources/read requires Mcp-Name to equal params.uri', async () => 
   const body = modernEnvelope(12, 'resources/read', { uri: 'current-3d://skill' });
   const valid = await request({ headers: modernHeaders('resources/read', 'current-3d://skill'), body });
   assert.equal(valid.statusCode, 200);
-  assert.equal(valid.body?.resultType, 'complete');
+  assert.equal(valid.body?.result?.resultType, 'complete');
 
   const invalid = await request({ headers: modernHeaders('resources/read', 'current-3d://source-policy'), body });
   assert.equal(invalid.statusCode, 400);

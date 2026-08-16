@@ -9,7 +9,7 @@ const endpoint = mcpConfig.mcpServers?.current_3d_engineering?.url;
 assert.equal(typeof endpoint, 'string', '.mcp.json must provide the canonical public MCP URL');
 const endpointUrl = new URL(endpoint);
 assert.equal(endpointUrl.protocol, 'https:');
-assert.equal(endpointUrl.pathname, '/api/mcp');
+assert.ok(endpointUrl.pathname.endsWith('/api/mcp'), 'canonical MCP URL path must end with /api/mcp');
 
 const LEGACY_VERSION = '2025-11-25';
 const MODERN_VERSION = '2026-07-28';

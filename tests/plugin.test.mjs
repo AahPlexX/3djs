@@ -67,14 +67,19 @@ async function collectFiles(directoryUrl) {
   return files;
 }
 
-test('plugin manifest is a skill-only Codex plugin with stable metadata', async () => {
+test('plugin manifest is a hybrid skill plus anonymous remote MCP with stable metadata', async () => {
   const manifest = await readJson('.codex-plugin/plugin.json');
+  const mcp = await readJson('.mcp.json');
   assert.equal(manifest.name, 'current-3d-engineering');
-  assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
+  assert.equal(manifest.version, '1.4.0');
   assert.equal(manifest.skills, './skills/');
+  assert.equal(manifest.mcpServers, './.mcp.json');
   assert.equal(manifest.repository, 'https://github.com/AahPlexX/3djs');
   assert.ok(manifest.interface?.category);
-  assert.ok(!('mcpServers' in manifest), 'MCP must not be declared unless one is actually implemented');
+  const server = mcp.mcpServers?.current_3d_engineering;
+  assert.equal(server?.type, 'http');
+  assert.match(server?.url ?? '', /^https:\/\/.+\/api\/mcp$/);
+  assert.deepEqual(Object.keys(server ?? {}).sort(), ['type', 'url']);
 });
 
 test('repo marketplace exposes the root plugin for ChatGPT/Codex installation', async () => {
@@ -207,11 +212,13 @@ test('npm helper agrees with independent live npm manifests end to end', async (
   }
 });
 
-test('structure validator is generic, provenance-first, and requires the scoped npm helper', async () => {
+test('structure validator is generic, provenance-first, and validates the hybrid remote MCP', async () => {
   const validator = await readText('skills/current-3d-engineering/scripts/validate-plugin.mjs');
   assert.match(validator, /project-routing\.md/);
   assert.match(validator, /engineering-invariants\.md/);
   assert.match(validator, /resolve-npm-packages\.mjs/);
+  assert.match(validator, /\.mcp\.json/);
+  assert.match(validator, /https:/i);
   assert.match(validator, /provenance/i);
   assert.match(validator, /category/);
   assert.doesNotMatch(validator, /scenarios\.json|scenarios\.md|scenario count|scenarios=/i);

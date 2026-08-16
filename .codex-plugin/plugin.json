@@ -1,6 +1,6 @@
 {
   "name": "current-3d-engineering",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Current-source 3D and graphics engineering across arbitrary project ecosystems.",
   "author": {
     "name": "AahPlexX",
@@ -19,10 +19,11 @@
     "gpu"
   ],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Current 3D Engineering",
     "shortDescription": "Current-source 3D graphics engineering",
-    "longDescription": "Inspects the actual project, dependency provenance, toolchains, ownership boundaries, persisted content, and target environment; verifies current authoritative facts; and implements or reviews 3D and graphics software without predefined project scenarios or supported-technology lists.",
+    "longDescription": "Inspects the actual project, dependency provenance, toolchains, ownership boundaries, persisted content, and target environment; verifies current authoritative facts; implements or reviews 3D and graphics software without predefined project scenarios or supported-technology lists; and bundles an anonymous read-only public HTTPS MCP companion for deterministic guidance access.",
     "developerName": "AahPlexX",
     "category": "Productivity",
     "capabilities": [

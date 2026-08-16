@@ -2,8 +2,8 @@
 
 ## Test 1 - Anonymous MCP self-check reports the deployed server [sanity]
 Viewport: desktop
-Covers: public status page, anonymous POST /api/mcp initialize, anonymous tools/list, live server identity, read-only tool discovery
-Description: Verifies the primary public workflow reaches the deployed MCP without credentials and reports the real server version and tool count.
+Covers: public status page, anonymous GET /api/mcp refusal, anonymous POST /api/mcp initialize, anonymous tools/list, live server identity, read-only tool discovery
+Description: Verifies the primary public workflow reaches the deployed MCP without credentials, proves the unused GET stream is refused, and reports the real server version and tool count.
 
 Steps:
 1. Open the public status page

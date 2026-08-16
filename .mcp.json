@@ -2,7 +2,7 @@
   "mcpServers": {
     "current_3d_engineering": {
       "type": "http",
-      "url": "https://current-3d-engineering-mcp-cpuz1i.v2.appdeploy.ai/api/mcp"
+      "url": "https://api-v2.appdeploy.ai/app/current-3d-engineering-mcp-cpuz1i/api/mcp"
     }
   }
 }

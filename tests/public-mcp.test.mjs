@@ -50,6 +50,8 @@ function modernEnvelope(id, method, params = {}) {
       _meta: {
         ...(params._meta ?? {}),
         'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+        'io.modelcontextprotocol/clientCapabilities': {},
+        'io.modelcontextprotocol/clientInfo': { name: 'contract-test', version: '1.0.0' },
       },
     },
   };

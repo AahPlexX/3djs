@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
-      - name: Universal contract and live registry tests
+      - name: Universal contracts, live npm, and deployed MCP tests
         run: npm test
       - name: Plugin structure validation
         run: npm run verify

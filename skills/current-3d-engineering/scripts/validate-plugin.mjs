@@ -17,6 +17,7 @@ const requiredFiles = [
   'tests/universality.test.mjs',
   'tests/public-mcp.test.mjs',
   'tests/public-mcp-compat.test.mjs',
+  'tests/public-mcp-live.test.mjs',
 ];
 
 for (const file of requiredFiles) await access(file);
@@ -46,7 +47,7 @@ for (const [serverName, server] of mcpEntries) {
   if (server.type !== 'http') throw new Error(`MCP server ${serverName} must use type http`);
   if (typeof server.url !== 'string' || !/^https:\/\//.test(server.url)) throw new Error(`MCP server ${serverName} must use an HTTPS URL`);
   const parsedUrl = new URL(server.url);
-  if (parsedUrl.pathname !== '/api/mcp') throw new Error(`MCP server ${serverName} URL must end at /api/mcp`);
+  if (!parsedUrl.pathname.endsWith('/api/mcp')) throw new Error(`MCP server ${serverName} URL path must end with /api/mcp`);
   if (['localhost', '127.0.0.1', '::1'].includes(parsedUrl.hostname)) throw new Error(`MCP server ${serverName} must not use a loopback endpoint`);
   const allowedServerFields = new Set(['type', 'url']);
   const unsupported = Object.keys(server).filter((key) => !allowedServerFields.has(key));

@@ -1,0 +1,49 @@
+# Tests
+
+## Test 1 - Anonymous MCP self-check reports the deployed server [sanity]
+Viewport: desktop
+Covers: public status page, anonymous POST /api/mcp initialize, anonymous tools/list, live server identity, read-only tool discovery
+Description: Verifies the primary public workflow reaches the deployed MCP without credentials and reports the real server version and tool count.
+
+Steps:
+1. Open the public status page
+2. Select "Run anonymous MCP check"
+3. Observe the status result
+
+Expected: The page displays "MCP online", "current-3d-engineering v1.4.0", and "2 read-only tools" without showing a login or API-key prompt.
+
+## Test 2 - Mobile view clearly communicates the anonymous read-only boundary
+Viewport: mobile
+Covers: responsive status page, no-login access statement, no-API-key access statement, read-only boundary, protocol support summary
+Description: Verifies the public access contract remains readable and unambiguous on a phone-sized viewport.
+
+Steps:
+1. Open the public status page on mobile
+2. Read the endpoint properties and introductory text
+3. Review the protocol support cards
+
+Expected: "No login or API key" and "Read-only" are visible without horizontal scrolling, and both 2025-11-25 and 2026-07-28 protocol support are visible.
+
+## Test 3 - MCP self-check surfaces an API failure instead of false success
+Viewport: desktop
+Covers: POST /api/mcp failure handling, user-visible error state, false-success prevention
+Description: Verifies a backend failure produces an explicit visible failure rather than reporting the MCP as online.
+
+QA Faults:
+```json
+[
+  {
+    "method": "POST",
+    "path": "/api/mcp",
+    "status": 500,
+    "body_json": { "error": "simulated_failure" }
+  }
+]
+```
+
+Steps:
+1. Open the public status page
+2. Select "Run anonymous MCP check"
+3. Observe the status result
+
+Expected: The page displays "MCP check failed" and does not display "MCP online".

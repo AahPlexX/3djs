@@ -21,7 +21,7 @@ root.innerHTML = `
       </div>
       <div>
         <h2 id="check-title">Anonymous self-check</h2>
-        <p>Runs MCP initialize and tool discovery without credentials.</p>
+        <p>Verifies the GET transport guard, then runs MCP initialize and tool discovery without credentials.</p>
       </div>
       <button id="run-check" type="button">Run anonymous MCP check</button>
       <p id="status" class="status" role="status" aria-live="polite">Not checked yet.</p>
@@ -44,6 +44,14 @@ button.addEventListener('click', async () => {
   status.textContent = 'Checking anonymous MCP access…';
 
   try {
+    let getWasRejected = false;
+    try {
+      await api.get('/api/mcp');
+    } catch {
+      getWasRejected = true;
+    }
+    if (!getWasRejected) throw new Error('GET transport guard was not enforced');
+
     const initialize = await api.post('/api/mcp', {
       jsonrpc: '2.0',
       id: 1,

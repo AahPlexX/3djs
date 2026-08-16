@@ -2,6 +2,26 @@
 
 A ChatGPT/Codex plugin for current-source-first 3D and graphics engineering across arbitrary project languages, runtimes, engines, toolchains, dependency systems, and target platforms. It requires the agent to inspect the actual project, preserve developer state, establish project materialization and dependency/toolchain provenance, verify exact APIs and compatibility against authoritative sources appropriate to that technology, implement against the discovered architecture, and prove the result before claiming completion.
 
+## Public HTTPS MCP
+
+The plugin is now hybrid: it keeps the full local `current-3d-engineering` skill and also bundles a public, anonymous, read-only remote MCP companion.
+
+Canonical endpoint:
+
+```text
+https://current-3d-engineering-mcp-cpuz1i.v2.appdeploy.ai/api/mcp
+```
+
+The remote MCP requires **no user login, OAuth flow, bearer token, API key, authorization header, or user-provided secret**. `.mcp.json` contains only the remote HTTP type and HTTPS endpoint. It is intentionally stateless and bounded.
+
+The anonymous network surface is deliberately smaller than the local engineering skill. It exposes deterministic plugin/server metadata plus bundled read-only guidance resources. It does **not** expose repository writes, filesystem mutation, shell/process execution, deployment actions, arbitrary URL proxying, private registries, credentials, paid AI/model calls, user-supplied executable code, or a remote autonomous coding agent.
+
+The endpoint supports the initialization-era `2025-11-25` Streamable HTTP request path used by current clients and the stateless `2026-07-28` MCP request model. The server does not need a server-initiated SSE stream, so `GET /api/mcp` intentionally returns `405 Method Not Allowed`; MCP requests use `POST /api/mcp` with JSON responses.
+
+Hosting is an implementation detail rather than the protocol source of truth. The current deployment uses AppDeploy's free hosted HTTPS/backend capability under its fair-use terms and has no database, hosted AI inference, paid third-party API, custom domain, or authentication-provider dependency. If the host stops satisfying the repository's zero-mandatory-recurring-cost requirement, the endpoint should be migrated rather than silently introducing a paid dependency.
+
+The live status/self-check page is available at the deployment root and verifies the GET transport guard plus anonymous MCP initialization and tool discovery. GitHub CI independently exercises the real `/api/mcp` endpoint rather than substituting a mock.
+
 ## Universal project support
 
 The plugin's domain is **3D/graphics engineering**. Within that domain, project eligibility is not restricted by language, engine, framework, package manager, registry, build system, editor, SDK, operating system, graphics API, repository layout, or deployment model.
@@ -115,7 +135,7 @@ codex plugin add current-3d-engineering@aahplexx-3djs
 codex plugin list
 ```
 
-The first command makes the marketplace available to Codex. The second installs **Current 3D Engineering** from that marketplace. The final command verifies installed plugins rather than merely listing marketplace sources.
+The first command makes the marketplace available to Codex. The second installs **Current 3D Engineering** from that marketplace. The final command verifies installed plugins rather than merely listing marketplace sources. The installed plugin includes both the local skill and the anonymous remote MCP declared in `.mcp.json`; users do not supply MCP credentials.
 
 ## Invoke
 
@@ -136,9 +156,9 @@ npm test
 npm run verify
 ```
 
-The tests validate plugin packaging and current required interface metadata, universal discovery metadata, skill-root-relative bundled script invocation, provenance-first source policy, developer-state preservation, project materialization, execution-trust rules, persisted 3D migration semantics, arbitrary project-structure routing properties, native/toolchain/build invariants, absence of encoded workflow/persona/package allowlists, explicit npm-helper scoping, compatibility-neutral npm candidate semantics, npm alias/non-registry provenance handling, independent agreement with live public npm manifests, real-endpoint integration, installation documentation, and CI wiring.
+The tests validate hybrid plugin packaging and current required interface metadata, the anonymous `.mcp.json` contract, legacy and modern MCP protocol behavior, the real deployed HTTPS endpoint, universal discovery metadata, skill-root-relative bundled script invocation, provenance-first source policy, developer-state preservation, project materialization, execution-trust rules, persisted 3D migration semantics, arbitrary project-structure routing properties, native/toolchain/build invariants, absence of encoded workflow/persona/package allowlists, explicit npm-helper scoping, compatibility-neutral npm candidate semantics, npm alias/non-registry provenance handling, independent agreement with live public npm manifests, installation documentation, and CI wiring.
 
-`npm test` includes live npm integration checks and therefore requires network access to `https://registry.npmjs.org`; registry outages fail those real integration tests instead of being hidden by simulated data.
+`npm test` includes real external integration checks for both the public npm registry and the deployed MCP endpoint. External outages therefore fail the corresponding integration tests instead of being hidden by simulated data.
 
 ## Design principles
 
@@ -152,6 +172,7 @@ The tests validate plugin packaging and current required interface metadata, uni
 - **Unknown is researchable, not unsupported.** New technologies do not require a plugin update merely to become eligible.
 - **Existing architecture wins.** Do not swap unfamiliar technology for familiar technology merely to fit a known pattern.
 - **Persisted semantics matter.** Source compatibility does not imply scene/asset/save/data compatibility.
+- **Anonymous does not mean privileged.** The public MCP remains deterministic, read-only, and free of private/project-mutation authority.
 - **Smallest coherent change.** Preserve unrelated roots, code, dependencies, generated output, developer changes, and reproducible project state.
 - **Proof before completion claims.** Verification must exercise the actual affected build/runtime/target/data boundaries.
 

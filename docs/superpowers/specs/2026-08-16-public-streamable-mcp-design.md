@@ -20,47 +20,48 @@ Cloudflare is explicitly not required by this design.
 
 ## Hosting choice
 
-Use **AppDeploy Free** for the remote MCP service.
+Use **AppDeploy Free** for the remote MCP service while its current free-hosting terms satisfy these requirements.
 
-Current official AppDeploy pricing states that the Free tier is $0, requires no credit card, and includes managed hosting, HTTPS, a hosted live URL, backend services, and global delivery under fair-use limits. The service must not use AppDeploy AI, paid third-party APIs, paid storage, or another billable downstream dependency.
-
-The deployment remains replaceable: the MCP protocol contract lives in this repository and the plugin points to one public HTTPS endpoint. Hosting is an implementation detail rather than a permanent architectural dependency.
+The service must not use AppDeploy AI, paid third-party APIs, paid storage, or another billable downstream dependency. The deployment remains replaceable: the MCP protocol contract lives in this repository and the plugin points to one public HTTPS endpoint. Hosting is an implementation detail rather than a permanent architectural dependency.
 
 ## Transport
 
-Expose one public endpoint:
+AppDeploy separates the human-facing frontend CDN from the backend API gateway. The canonical MCP endpoint is therefore the raw backend-gateway route, not the status-page hostname:
 
 ```text
-https://<appdeploy-host>/api/mcp
+https://api-v2.appdeploy.ai/app/<app-id>/api/mcp
 ```
+
+The current concrete URL is stored once in `.mcp.json`; tests read it from there rather than duplicating it as an independent configuration source.
 
 Implement MCP over Streamable HTTP.
 
 For compatibility with current MCP clients:
 
-- `POST /api/mcp` accepts JSON-RPC requests/notifications/responses;
+- the canonical endpoint accepts JSON-RPC requests/notifications through `POST`;
 - JSON-RPC requests return `application/json` unless a future feature genuinely requires SSE;
 - accepted notifications/responses return `202` with no response body where required by the negotiated protocol;
-- `GET /api/mcp` returns `405 Method Not Allowed` because this server does not need a server-initiated SSE stream;
+- direct `GET` returns `405 Method Not Allowed` because this server does not provide a server-initiated SSE stream;
 - validate `Origin` when present;
 - validate the negotiated MCP protocol version;
 - for protocol versions that require them, validate `Mcp-Method` and `Mcp-Name` headers against the JSON body;
 - do not mint hidden server-side sessions for the stateless protocol path;
 - reject malformed JSON-RPC and unsupported methods deterministically.
 
-The implementation should support the current stateless MCP protocol while retaining the narrow backwards-compatible request path needed by clients still using initialization-era Streamable HTTP.
+Support current stateless MCP `2026-07-28` while retaining the narrow `2025-11-25` initialization-era Streamable HTTP request path needed by current clients.
 
 ## Anonymous access boundary
 
 The remote MCP is intentionally unauthenticated, but open access does **not** mean arbitrary execution.
 
-Allowed public capabilities are read-only and deterministic. Initial tool/resource scope:
+Allowed public capabilities are read-only and deterministic. Initial scope:
 
 - plugin/server metadata and version information;
-- current engineering/source-policy guidance bundled with the service;
-- project-routing and engineering-invariant guidance;
-- optional public npm-compatible metadata lookup only when explicitly requested and safely bounded;
+- bundled current engineering/source-policy guidance;
+- bundled project-routing and engineering-invariant guidance;
 - health/capability discovery required by MCP clients.
+
+The optional public npm lookup considered during design is intentionally omitted from v1.4.0 because it is unnecessary for open access and would enlarge the anonymous network surface.
 
 The anonymous service must **not** expose:
 
@@ -75,16 +76,14 @@ The anonymous service must **not** expose:
 - arbitrary code evaluation;
 - user-supplied executable scripts.
 
-This preserves the existing local skill as the engineering/reasoning layer while making a safe subset available remotely.
+This preserves the existing local skill as the full engineering/reasoning layer while making a safe subset available remotely.
 
 ## Abuse and safety controls
 
 Because the endpoint is public:
 
 - cap request body size;
-- cap string/array argument sizes;
-- restrict any network lookup tool to an explicitly supported public upstream and validated package-name input;
-- use bounded upstream timeouts;
+- cap accepted argument scope through closed schemas and known resource URIs;
 - never reflect secret headers;
 - reject invalid Origin values with `403` when Origin is present;
 - return structured JSON-RPC errors without internal stack traces;
@@ -100,12 +99,12 @@ Convert the plugin from skill-only packaging to a hybrid skill + remote MCP plug
 
 - add `.mcp.json` with the deployed remote MCP URL;
 - add `mcpServers` to `.codex-plugin/plugin.json` using the current OpenAI-supported contract;
-- do not configure bearer-token, OAuth, or secret environment fields;
+- do not configure bearer-token, OAuth, custom authorization-header, or secret environment fields;
 - preserve `skills: "./skills/"`;
 - keep the existing marketplace entry and installation flow;
-- bump the plugin version because the externally observable capability surface changes.
+- bump the plugin to v1.4.0 because the externally observable capability surface changes.
 
-The local validator must fail if the manifest claims an MCP server but `.mcp.json` is absent or malformed.
+The local validator must fail if the manifest claims an MCP server but `.mcp.json` is absent, malformed, non-HTTPS, loopback-only, or contains unsupported credential-bearing configuration.
 
 ## Source of truth
 
@@ -117,13 +116,13 @@ The repository remains authoritative for:
 - plugin manifest and `.mcp.json`;
 - tests and endpoint conformance checks.
 
-The AppDeploy deployment is a hosted build of that contract, not a second independent product specification.
+The hosted guidance is a concise immutable read-only projection of the governing local skill/reference rules rather than a byte-for-byte duplicate. The full local skill/references remain authoritative for full engineering behavior. The AppDeploy deployment is a hosted build of the remote contract, not a second independent product specification.
 
 ## Verification
 
 Completion requires evidence at four layers:
 
-1. **Local contract tests**
+1. **Protocol/contract tests**
    - JSON-RPC validation;
    - tool/resource schemas;
    - no authentication fields;
@@ -132,8 +131,8 @@ Completion requires evidence at four layers:
 
 2. **Real deployment tests**
    - anonymous request succeeds without credentials;
-   - HTTPS endpoint is reachable;
-   - initialize/discovery/list/call behavior works through the deployed URL;
+   - HTTPS endpoint is reachable from an independent network path;
+   - initialize/discovery/list/call behavior works through the raw backend gateway;
    - GET behavior is correct;
    - invalid Origin/protocol/header/body cases fail correctly.
 
@@ -144,14 +143,14 @@ Completion requires evidence at four layers:
 
 4. **Exact-HEAD CI**
    - GitHub Actions tests the final repository HEAD;
-   - live integration exercises the deployed endpoint rather than a mock server;
+   - live integration exercises the deployed raw backend endpoint rather than a mock or the same-app frontend client;
    - `main` remains authoritative.
 
 ## Cost constraint
 
-At implementation time, AppDeploy must still provide the required public HTTPS/backend capability on its Free tier. If that changes before deployment, stop using AppDeploy and select another directly controllable $0 host rather than introducing a paid dependency.
+At implementation time, AppDeploy must still provide the required hosted HTTPS/backend capability on its Free tier. If that changes, migrate to another directly controllable $0 host rather than introducing a mandatory paid dependency.
 
-The design intentionally uses no database, no hosted AI inference, no paid API, no custom domain, and no authentication provider, minimizing both cost and operational surface.
+The design intentionally uses no database, hosted AI inference, paid API, custom domain, or authentication provider, minimizing both cost and operational surface.
 
 ## Non-goals
 
